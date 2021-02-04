@@ -1,5 +1,5 @@
 all:
-	gcc -c -g -Os -march=i686 -m32 -ffreestanding -Wall -Werror src/test.c -o obj/test.o
+	gcc -c -g -Os -march=i686 -m16 -ffreestanding -Wall -Werror src/test.c -o obj/test.o
 	ld -m elf_i386 -static -Tlinker_scripts/test.ld -nostdlib --nmagic -o elf/test.elf obj/test.o
 	objcopy -O binary elf/test.elf bin/test.bin
 	dd if=bin/test.bin of=img/usb.img

@@ -1,5 +1,5 @@
 /*generate 16-bit code*/
-__asm__(".code16\n");
+__asm__(".code16gcc\n");
 /*jump boot code entry*/
 __asm__("jmpl $0x0000, $main\n");
 
