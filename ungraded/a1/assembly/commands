@@ -1,4 +1,0 @@
-# for creating a usb bootable device
-# dd if=/dev/zero of=usb.img bs=512 count=2880
-# for copying image
-# dd if=bin/test.bin of=usb.img

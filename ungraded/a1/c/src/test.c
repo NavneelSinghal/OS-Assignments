@@ -15,5 +15,5 @@ void printString(const char* pStr) {
 
 void main() {
      /* calling the printString function passing string as an argument */
-     printString("Hello, World\0");
+     printString("Hello, World");
 }
