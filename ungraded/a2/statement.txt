@@ -1,0 +1,8 @@
+As discussed please follow the steps outlined in this link: https://greek0.net/elf.html
+
+Salient points which you should definitely know after reading and understanding the contents of the page include:
+
+    readelf command
+    objdump
+    static and dynamic linking
+    relocation
