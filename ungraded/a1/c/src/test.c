@@ -3,6 +3,8 @@ __asm__(".code16gcc\n");
 /*jump boot code entry*/
 __asm__("jmpl $0x0000, $main\n");
 
+char* str = "Hello, World";
+
 /* user defined function to print series of characters terminated by null character */
 void printString(const char* pStr) {
      while(*pStr) {
@@ -15,6 +17,6 @@ void printString(const char* pStr) {
 
 void main() {
      /* calling the printString function passing string as an argument */
-     printString("Hello, World");
+     printString(str);
      return;
 }

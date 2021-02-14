@@ -4,6 +4,9 @@ LDFLAGS=--oformat=binary -Ttext 0x7c00
 
 GENERATED_FILES=img/usb.img obj/test.o elf/test.elf bin/test.bin boot/bootloader.vfd
 
+.PHONY: run
+run: img/usb.img boot/bootloader.vfd
+
 img/usb.img: bin/test.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880
 	dd if=$^ of=$@
