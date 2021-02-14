@@ -1,16 +1,31 @@
-bochs:
-	gcc -c -g -Os -march=i686 -m16 -ffreestanding -Wall -Werror src/test.c -o obj/test.o
-	ld -m elf_i386 -static -Tlinker_scripts/test.ld -nostdlib --nmagic -o elf/test.elf obj/test.o
-	objcopy -O binary elf/test.elf bin/test.bin
-	dd if=/dev/zero of=img/usb.img bs=512 count=2880
-	dd if=bin/test.bin of=img/usb.img
+CC=/bin/gcc
+LD=/bin/ld
+ARCH=i686
+CFLAGS=-g -Os -march=$(ARCH) -m16 -ffreestanding -Wall -Werror
+LDSCRIPT=linker_scripts/test.ld
+LDFLAGS=-m elf_i386 -static -T$(LDSCRIPT) -nostdlib --nmagic
 
-virtual:
-	gcc -c -g -Os -march=i686 -m16 -ffreestanding -Wall -Werror src/test.c -o obj/test.o
-	ld -m elf_i386 -static -Tlinker_scripts/test.ld -nostdlib --nmagic -o elf/test.elf obj/test.o
-	objcopy -O binary elf/test.elf bin/test.bin
-	head -c 1474560 /dev/zero > bootloader.vfd
-	dd status=noxfer conv=notrunc if=bin/test.bin of=bootloader.vfd
+GENERATED_FILES=img/usb.img obj/test.o elf/test.elf bin/test.bin
+
+img/usb.img: bin/test.bin
+	dd if=/dev/zero of=$@ bs=512 count=2880
+	dd if=$^ of=$@
+
+boot/bootloader.vfd: bin/test.bin
+	dd if=/dev/zero of=$@ bs=512 count=2880
+	dd status=noxfer conv=notrunc if=$^ of=$@
+
+obj/test.o: src/test.c
+	$(CC) -c $(CFLAGS) $^ -o $@
+
+elf/test.elf: obj/test.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+bin/test.bin: elf/test.elf
+	objcopy -O binary $^ $@
+
+clean:
+	rm $(GENERATED_FILES)
 
 # gens:
 # 	gcc -S -Os -march=i686 -m16 -ffreestanding -Wall -Werror src/test.c -o asm/test.s
