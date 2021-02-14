@@ -3,5 +3,5 @@ megs: 32
 #vgaromimage: /usr/local/bochs/1.4.1/VGABIOS-elpin-2.40
 floppya: 1_44=img/usb.img, status=inserted
 boot: a
-log: log/bochsout.txt
+log: /dev/null #log/bochsout.txt
 mouse: enabled=0 
