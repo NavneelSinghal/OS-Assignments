@@ -5,7 +5,7 @@ CFLAGS=-g -Os -march=$(ARCH) -m16 -ffreestanding -Wall -Werror
 LDSCRIPT=linker_scripts/test.ld
 LDFLAGS=-m elf_i386 -static -T$(LDSCRIPT) -nostdlib --nmagic
 
-GENERATED_FILES=img/usb.img obj/test.o elf/test.elf bin/test.bin
+GENERATED_FILES=img/usb.img obj/test.o elf/test.elf bin/test.bin boot/bootloader.vfd
 
 img/usb.img: bin/test.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880
