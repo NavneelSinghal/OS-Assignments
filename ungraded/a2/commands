@@ -1,0 +1,8 @@
+readelf -S /bin/bash # section header table - for linking view
+readelf -l /bin/bash # program header table - for execution view
+readelf -h /bin/bash # ELF header
+readelf -r /bin/bash # relocation table
+objdump -h ../a1/c/obj/test.o
+objdump -h ../a1/assembly/obj/test.o
+objdump -d ../a1/c/obj/test.o > c.log
+objdump -d ../a1/assembly/obj/test.o > asm.log

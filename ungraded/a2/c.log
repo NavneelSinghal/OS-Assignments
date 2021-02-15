@@ -1,0 +1,63 @@
+
+../a1/c/obj/test.o:     file format elf32-i386
+
+
+Disassembly of section .text:
+
+00000000 <printString-0x8>:
+   0:	66 ea 00 00 00 00    	ljmpw  $0x0,$0x0
+	...
+
+00000008 <printString>:
+   8:	f3 0f 1e fb          	endbr32 
+   c:	66 55                	push   %bp
+   e:	66 89 e5             	mov    %sp,%bp
+  11:	66 53                	push   %bx
+  13:	67 66 8b 55 08       	mov    0x8(%di),%dx
+  18:	66 bb 07 00          	mov    $0x7,%bx
+  1c:	00 00                	add    %al,(%eax)
+  1e:	67 66 0f be 02       	movsbw (%bp,%si),%ax
+  23:	84 c0                	test   %al,%al
+  25:	74 09                	je     30 <printString+0x28>
+  27:	80 cc 0e             	or     $0xe,%ah
+  2a:	cd 10                	int    $0x10
+  2c:	66 42                	inc    %dx
+  2e:	eb ee                	jmp    1e <printString+0x16>
+  30:	66 5b                	pop    %bx
+  32:	66 5d                	pop    %bp
+  34:	66 c3                	retw   
+
+Disassembly of section .text.startup:
+
+00000000 <main>:
+   0:	f3 0f 1e fb          	endbr32 
+   4:	66 e8 fc ff          	callw  4 <main+0x4>
+   8:	ff                   	(bad)  
+   9:	ff 66 05             	jmp    *0x5(%esi)
+   c:	02 00                	add    (%eax),%al
+   e:	00 00                	add    %al,(%eax)
+  10:	67 66 8d 4c 24       	lea    0x24(%si),%cx
+  15:	04 66                	add    $0x66,%al
+  17:	83 e4 f0             	and    $0xfffffff0,%esp
+  1a:	67 66 ff 71 fc       	pushw  -0x4(%bx,%di)
+  1f:	66 55                	push   %bp
+  21:	66 89 e5             	mov    %sp,%bp
+  24:	66 51                	push   %cx
+  26:	66 83 ec 10          	sub    $0x10,%sp
+  2a:	67 66 ff b0 00 00    	pushw  0x0(%bx,%si)
+  30:	00 00                	add    %al,(%eax)
+  32:	66 e8 fc ff          	callw  32 <main+0x32>
+  36:	ff                   	(bad)  
+  37:	ff 67 66             	jmp    *0x66(%edi)
+  3a:	8b 4d fc             	mov    -0x4(%ebp),%ecx
+  3d:	66 83 c4 10          	add    $0x10,%sp
+  41:	66 c9                	leavew 
+  43:	67 66 8d 61 fc       	lea    -0x4(%bx,%di),%sp
+  48:	66 c3                	retw   
+
+Disassembly of section .text.__x86.get_pc_thunk.ax:
+
+00000000 <__x86.get_pc_thunk.ax>:
+   0:	67 66 8b 04          	mov    (%si),%ax
+   4:	24 66                	and    $0x66,%al
+   6:	c3                   	ret    

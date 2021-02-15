@@ -1,0 +1,13 @@
+
+../a1/assembly/obj/test.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <_start>:
+   0:	b0 58                	mov    $0x58,%al
+   2:	b4 0e                	mov    $0xe,%ah
+   4:	cd 10                	int    $0x10
+	...
+ 1fe:	55                   	push   %rbp
+ 1ff:	aa                   	stos   %al,%es:(%rdi)
