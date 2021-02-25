@@ -15,6 +15,7 @@ void vector_destroy(vector* v) {
     v->size = 0;
     v->capacity = 0;
     free(v->a);
+    v->a = NULL;
 }
 
 /* can potentially lead to memory leaks */

@@ -1,7 +1,7 @@
-1. implement vector in C
-2. implement sieve in C
-    a. first find primes upto sqrt(n) using a simple sieve -- use a safe implementation of sqrt(n)
-    b. use this data for segmented sieve
-    c. for each chunk allocated to a thread, store the primes found in that iteration in the corresponding vector
-    d. at the end of all thread executions, just merge the vectors
-
+1. implement vector in C - done
+2. implement sieve in C - done
+    a. first find primes upto sqrt(n) using a simple sieve -- use a safe implementation of sqrt(n) - done
+    b. use this data for segmented sieve - done
+    c. for each chunk allocated to a thread, store the primes found in that iteration in the corresponding vector - done
+    d. at the end of all thread executions, just merge the vectors - no merging needed, just read off
+3. implement graph plots and all that
