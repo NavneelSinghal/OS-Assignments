@@ -1,0 +1,67 @@
+All times mentioned are in microseconds
+
+Naive scheduling statistics:
+
+Thread #0:
+	Wall time:	6469.843000
+	CPU time:	6424.867000
+Thread #1:
+	Wall time:	8294.915000
+	CPU time:	8295.907000
+Thread #2:
+	Wall time:	9166.775000
+	CPU time:	9130.000000
+Thread #3:
+	Wall time:	9421.344000
+	CPU time:	9409.008000
+Thread #4:
+	Wall time:	9951.388000
+	CPU time:	9952.823000
+Thread #5:
+	Wall time:	9767.459000
+	CPU time:	9769.137000
+Thread #6:
+	Wall time:	8558.837000
+	CPU time:	8560.296000
+Thread #7:
+	Wall time:	10328.848000
+	CPU time:	10330.427000
+Thread #8:
+	Wall time:	10300.995000
+	CPU time:	10302.396000
+Thread #9:
+	Wall time:	10263.292000
+	CPU time:	10264.795000
+
+Load-balanced scheduling statistics:
+
+Thread #0:
+	Wall time:	9366.854000
+	CPU time:	9366.056000
+Thread #1:
+	Wall time:	9329.251000
+	CPU time:	9300.045000
+Thread #2:
+	Wall time:	9300.932000
+	CPU time:	9279.440000
+Thread #3:
+	Wall time:	9276.809000
+	CPU time:	9275.763000
+Thread #4:
+	Wall time:	9216.598000
+	CPU time:	9216.194000
+Thread #5:
+	Wall time:	9227.971000
+	CPU time:	9226.470000
+Thread #6:
+	Wall time:	9192.300000
+	CPU time:	9191.484000
+Thread #7:
+	Wall time:	9145.278000
+	CPU time:	9144.290000
+Thread #8:
+	Wall time:	9117.140000
+	CPU time:	9103.912000
+Thread #9:
+	Wall time:	9059.624000
+	CPU time:	9058.529000

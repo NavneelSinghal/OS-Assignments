@@ -62,11 +62,8 @@ void* run_thread_static(void* arg) {
     int left_chunk = (1LL * cur_thread * total_chunks) / num_threads;
     int right_chunk = (1LL * (cur_thread + 1) * total_chunks) / num_threads - 1;
     if (cur_thread == total_chunks - 1) right_chunk = total_chunks - 1;
-
-    // printf("thread number %d: left %d, right %d\n", cur_thread, left_chunk,
-    // right_chunk);
-
     for (int chunk_num = left_chunk; chunk_num <= right_chunk; ++chunk_num) {
+    // for (int chunk_num = cur_thread; chunk_num < total_chunks; chunk_num += num_threads) {
         /* ascertain chunk boundaries and size */
         long long l = 1LL * chunk_num * chunk_size + 1;
         long long r = 1LL * (chunk_num + 1) * chunk_size;
@@ -191,7 +188,8 @@ int main(int argc, char* argv[]) {
     max_small_prime = (int)sqrt(N) - 2;
     if (max_small_prime < 0) max_small_prime = 0;
     while (1LL * max_small_prime * max_small_prime < N) ++max_small_prime;
-    chunk_size = max_small_prime / 1;  // TODO: tweak parameters later on
+    // chunk_size = max_small_prime / 1;  // TODO: tweak parameters later on
+    chunk_size = 1.5 * cbrt(N);
     total_chunks = (N + chunk_size - 1) / chunk_size;
 
     /* initializing data structures */

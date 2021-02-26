@@ -1,6 +1,10 @@
 CFLAGS = -O0 -pthread -lm -g -Wall -Werror -std=c99
 
+N ?= 1000000
+t ?= 10
+
 all: bin/main
+	bin/main $(N) $(t)
 
 bin/main: obj/main.o obj/vector.o
 	gcc -o $@ $^ $(CFLAGS)

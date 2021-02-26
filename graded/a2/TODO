@@ -5,4 +5,4 @@
     c. for each chunk allocated to a thread, store the primes found in that iteration in the corresponding vector - done
     d. at the end of all thread executions, just merge the vectors - no merging needed, just read off
 3. implement graph plots and all that
-4. look into why these plots are so random
+4. look into why these plots are so random - fixed by reducing chunk size
