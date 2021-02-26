@@ -1,4 +1,4 @@
-CFLAGS = -O3 -pthread -lm -g -Wall -Werror -std=c99
+CFLAGS = -O0 -pthread -lm -g -Wall -Werror -std=c99
 
 all: bin/main
 

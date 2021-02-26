@@ -26,10 +26,10 @@ vector* primes;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-double* wallclock_time_static;
-double* wallclock_time_dynamic;
-double* cpuclock_time_static;
-double* cpuclock_time_dynamic;
+double* wall_time_static;
+double* wall_time_dynamic;
+double* cpu_time_static;
+double* cpu_time_dynamic;
 
 /**
  * ------------------------ FUNCTIONS --------------------------
@@ -56,13 +56,15 @@ void* run_thread_static(void* arg) {
     /* statically run over the chunks */
     /* to perform round robin scheduling instead, vary chunk_num from
      * cur_thread to total_chunks - 1, with increments of num_threads
+     * this gives results similar to dynamic scheduling
      */
 
     int left_chunk = (1LL * cur_thread * total_chunks) / num_threads;
     int right_chunk = (1LL * (cur_thread + 1) * total_chunks) / num_threads - 1;
     if (cur_thread == total_chunks - 1) right_chunk = total_chunks - 1;
 
-    // printf("thread number %d: left %d, right %d\n", cur_thread, left_chunk, right_chunk);
+    // printf("thread number %d: left %d, right %d\n", cur_thread, left_chunk,
+    // right_chunk);
 
     for (int chunk_num = left_chunk; chunk_num <= right_chunk; ++chunk_num) {
         /* ascertain chunk boundaries and size */
@@ -97,9 +99,8 @@ void* run_thread_static(void* arg) {
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_time_cpu);
     clock_gettime(CLOCK_MONOTONIC, &end_time_real);
 
-    cpuclock_time_static[cur_thread] =
-        time_duration(&start_time_cpu, &end_time_cpu);
-    wallclock_time_static[cur_thread] =
+    cpu_time_static[cur_thread] = time_duration(&start_time_cpu, &end_time_cpu);
+    wall_time_static[cur_thread] =
         time_duration(&start_time_real, &end_time_real);
 
     return NULL;
@@ -161,14 +162,14 @@ void* run_thread_dynamic(void* arg) {
     }
 
     free(is_prime);
-    
+
     struct timespec end_time_cpu, end_time_real;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_time_cpu);
     clock_gettime(CLOCK_MONOTONIC, &end_time_real);
 
-    cpuclock_time_dynamic[cur_thread] =
+    cpu_time_dynamic[cur_thread] =
         time_duration(&start_time_cpu, &end_time_cpu);
-    wallclock_time_dynamic[cur_thread] =
+    wall_time_dynamic[cur_thread] =
         time_duration(&start_time_real, &end_time_real);
 
     return NULL;
@@ -200,17 +201,15 @@ int main(int argc, char* argv[]) {
     vector_init(&small_primes);
 
     /* initializing timing data */
-
-    wallclock_time_static = (double*)malloc(num_threads * sizeof(double));
-    wallclock_time_dynamic = (double*)malloc(num_threads * sizeof(double));
-    cpuclock_time_static = (double*)malloc(num_threads * sizeof(double));
-    cpuclock_time_dynamic = (double*)malloc(num_threads * sizeof(double));
-
+    wall_time_static = (double*)malloc(num_threads * sizeof(double));
+    wall_time_dynamic = (double*)malloc(num_threads * sizeof(double));
+    cpu_time_static = (double*)malloc(num_threads * sizeof(double));
+    cpu_time_dynamic = (double*)malloc(num_threads * sizeof(double));
     for (int i = 0; i < num_threads; ++i) {
-        wallclock_time_static[i] = 0;
-        wallclock_time_dynamic[i] = 0;
-        cpuclock_time_static[i] = 0;
-        cpuclock_time_dynamic[i] = 0;
+        wall_time_static[i] = 0;
+        wall_time_dynamic[i] = 0;
+        cpu_time_static[i] = 0;
+        cpu_time_dynamic[i] = 0;
     }
 
     /* initialize sieve of small size */
@@ -227,12 +226,11 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    /* thread number arguments to pass into threads */
     int* thread_num = (int*)malloc(num_threads * sizeof(int));
     for (int i = 0; i < num_threads; ++i) thread_num[i] = i;
 
-    /* static program */
-
-    /* run all threads and all here */
+    /* static scheduling */
     pthread_t* tid_static = (pthread_t*)malloc(num_threads * sizeof(pthread_t));
     for (int i = 0; i < num_threads; ++i) {
         pthread_attr_t attr;
@@ -244,14 +242,12 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < num_threads; ++i) pthread_join(tid_static[i], NULL);
     free(tid_static);
 
-    /* dynamic program */
-
     for (int i = 0; i < total_chunks; ++i) {
         vector_destroy(&primes[i]);
         vector_init(&primes[i]);
     }
 
-    /* run all threads and all here */
+    /* dynamic scheduling */
     pthread_t* tid_dynamic =
         (pthread_t*)malloc(num_threads * sizeof(pthread_t));
     for (int i = 0; i < num_threads; ++i) {
@@ -264,32 +260,14 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < num_threads; ++i) pthread_join(tid_dynamic[i], NULL);
     free(tid_dynamic);
 
-    /* print all primes in order */
-    // for (int i = 0; i < total_chunks; ++i)
-    //     for (int j = 0; j < primes[i].size; ++j)
-    //         printf("%lld\n", primes[i].a[j]);
-
-    printf("static allocation stats follow\n\n");
-    for (int i = 0; i < num_threads; ++i) {
-        printf("thread %d:\n\twallclock: %lf\n\tcpuclock: %lf\n", i,
-               wallclock_time_static[i], cpuclock_time_static[i]);
-    }
-
-    printf("\n");
-
-    printf("dynamic allocation stats follow\n\n");
-    for (int i = 0; i < num_threads; ++i) {
-        printf("thread %d:\n\twallclock: %lf\n\tcpuclock: %lf\n", i,
-               wallclock_time_dynamic[i], cpuclock_time_dynamic[i]);
-    }
-
-    printf("\n");
-
-    /* freeing timing data */
-    free(wallclock_time_static);
-    free(wallclock_time_dynamic);
-    free(cpuclock_time_static);
-    free(cpuclock_time_dynamic);
+    /* print all primes in order to a file */
+    printf("Printing all primes from 1 to %lld to output/primes.txt\n", N);
+    FILE* prime_file = fopen("output/primes.txt", "w");
+    if (argc <= 3 || atoi(argv[3]) != 0)
+        for (int i = 0; i < total_chunks; ++i)
+            for (int j = 0; j < primes[i].size; ++j)
+                fprintf(prime_file, "%lld\n", primes[i].a[j]);
+    fclose(prime_file);
 
     /* freeing data structures */
     free(thread_num);
@@ -297,5 +275,52 @@ int main(int argc, char* argv[]) {
     free(is_small_prime);
     for (int i = 0; i < total_chunks; ++i) vector_destroy(&primes[i]);
     free(primes);
+
+    /* printing timing stats to a file */
+    printf("Printing timing statistics to output/timing_stats.txt\n");
+    FILE* timing_stats_file = fopen("output/timing_stats.txt", "w");
+    fprintf(timing_stats_file, "All times mentioned are in microseconds\n\n");
+    fprintf(timing_stats_file, "Naive scheduling statistics:\n\n");
+    for (int i = 0; i < num_threads; ++i)
+        fprintf(timing_stats_file,
+                "Thread #%d:\n\tWall time:\t%lf\n\tCPU time:\t%lf\n", i,
+                wall_time_static[i], cpu_time_static[i]);
+    fprintf(timing_stats_file, "\n");
+    fprintf(timing_stats_file, "Load-balanced scheduling statistics:\n\n");
+    for (int i = 0; i < num_threads; ++i)
+        fprintf(timing_stats_file,
+                "Thread #%d:\n\tWall time:\t%lf\n\tCPU time:\t%lf\n", i,
+                wall_time_dynamic[i], cpu_time_dynamic[i]);
+    fclose(timing_stats_file);
+
+    /* plotting graphs */
+    printf("Saving timing plot to output/timing_plot.png\n");
+    FILE* statistics_file = fopen("output/stats_for_plotting.dat", "w");
+    for (int i = 0; i < num_threads; ++i)
+        fprintf(statistics_file, "%d %lf %lf\n", i, cpu_time_static[i],
+                cpu_time_dynamic[i]);
+    fclose(statistics_file);
+
+    FILE* gnuplot_pipe = popen("gnuplot -persistent", "w");
+    fprintf(gnuplot_pipe,
+            "set term png; "
+            "set output 'output/timing_plot.png'; "
+            "set style data histogram; "
+            "set style histogram cluster gap 1; "
+            "set style fill solid; "
+            "set xlabel \"Thread number\"; "
+            "set ylabel \"Time (in microseconds)\"; "
+            "plot "
+            "'output/stats_for_plotting.dat' "
+            "using 2:xtic(1) title \"Naive scheduling\", \\\n"
+            "\'\' using 3:xtic(1) title \"Load-balanced scheduling\";\n");
+    pclose(gnuplot_pipe);
+
+    /* freeing timing data */
+    free(wall_time_static);
+    free(wall_time_dynamic);
+    free(cpu_time_static);
+    free(cpu_time_dynamic);
+
     return 0;
 }
