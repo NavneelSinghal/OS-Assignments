@@ -63,7 +63,8 @@ void* run_thread_static(void* arg) {
     int right_chunk = (1LL * (cur_thread + 1) * total_chunks) / num_threads - 1;
     if (cur_thread == total_chunks - 1) right_chunk = total_chunks - 1;
     for (int chunk_num = left_chunk; chunk_num <= right_chunk; ++chunk_num) {
-    // for (int chunk_num = cur_thread; chunk_num < total_chunks; chunk_num += num_threads) {
+        // for (int chunk_num = cur_thread; chunk_num < total_chunks; chunk_num
+        // += num_threads) {
         /* ascertain chunk boundaries and size */
         long long l = 1LL * chunk_num * chunk_size + 1;
         long long r = 1LL * (chunk_num + 1) * chunk_size;
@@ -301,6 +302,16 @@ int main(int argc, char* argv[]) {
 
     FILE* gnuplot_pipe = popen("gnuplot -persistent", "w");
     fprintf(gnuplot_pipe,
+            "set style data histogram; "
+            "set style histogram cluster gap 1; "
+            "set style fill solid; "
+            "set xlabel \"Thread number\"; "
+            "set ylabel \"Time (in microseconds)\"; "
+            "plot "
+            "'output/stats_for_plotting.dat' "
+            "using 2:xtic(1) title \"Naive scheduling\", \\\n"
+            "\'\' using 3:xtic(1) title \"Load-balanced scheduling\";\n");
+    fprintf(gnuplot_pipe,
             "set term png; "
             "set output 'output/timing_plot.png'; "
             "set style data histogram; "
@@ -312,6 +323,7 @@ int main(int argc, char* argv[]) {
             "'output/stats_for_plotting.dat' "
             "using 2:xtic(1) title \"Naive scheduling\", \\\n"
             "\'\' using 3:xtic(1) title \"Load-balanced scheduling\";\n");
+
     pclose(gnuplot_pipe);
 
     /* freeing timing data */
