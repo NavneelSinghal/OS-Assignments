@@ -18,7 +18,7 @@ void vector_destroy(vector* v) {
     v->a = NULL;
 }
 
-/* can potentially lead to memory leaks */
+/* can potentially lead to memory leaks if exit called */
 void vector_push_back(vector* v, data_t x) {
     if (v->capacity == 0) {
         fprintf(stderr, "vector_push_back to a destroyed vector failed\n");

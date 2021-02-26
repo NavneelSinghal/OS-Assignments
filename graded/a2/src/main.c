@@ -54,13 +54,23 @@ void* run_thread_static(void* arg) {
     clock_gettime(CLOCK_MONOTONIC, &start_time_real);
 
     /* statically run over the chunks */
-    for (int chunk_num = cur_thread; chunk_num < total_chunks;
-         chunk_num += num_threads) {
+    /* to perform round robin scheduling instead, vary chunk_num from
+     * cur_thread to total_chunks - 1, with increments of num_threads
+     */
+
+    int left_chunk = (1LL * cur_thread * total_chunks) / num_threads;
+    int right_chunk = (1LL * (cur_thread + 1) * total_chunks) / num_threads - 1;
+    if (cur_thread == total_chunks - 1) right_chunk = total_chunks - 1;
+
+    // printf("thread number %d: left %d, right %d\n", cur_thread, left_chunk, right_chunk);
+
+    for (int chunk_num = left_chunk; chunk_num <= right_chunk; ++chunk_num) {
         /* ascertain chunk boundaries and size */
         long long l = 1LL * chunk_num * chunk_size + 1;
         long long r = 1LL * (chunk_num + 1) * chunk_size;
         if (r > N) r = N;
         long long current_chunk_size = r - l + 1;
+        // printf("thread number %d: l = %lld, r = %lld\n", cur_thread, l, r);
 
         /* boolean array of whether it is a prime or not */
         for (long long i = 0; i < current_chunk_size; ++i) is_prime[i] = 1;
@@ -151,7 +161,7 @@ void* run_thread_dynamic(void* arg) {
     }
 
     free(is_prime);
-
+    
     struct timespec end_time_cpu, end_time_real;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_time_cpu);
     clock_gettime(CLOCK_MONOTONIC, &end_time_real);
@@ -172,15 +182,15 @@ int main(int argc, char* argv[]) {
     /* parsing input parameters */
     num_threads = 10;
     N = 1000000;
-    if (argc >= 2) num_threads = atoi(argv[1]);
-    if (argc >= 3) N = atoll(argv[2]);
+    if (argc >= 2) N = atoll(argv[1]);
+    if (argc >= 3) num_threads = atoi(argv[2]);
     dprintf("Setting options num_threads = %d, N = %lld...\n", num_threads, N);
 
     /* setting parameters */
     max_small_prime = (int)sqrt(N) - 2;
     if (max_small_prime < 0) max_small_prime = 0;
     while (1LL * max_small_prime * max_small_prime < N) ++max_small_prime;
-    chunk_size = max_small_prime;
+    chunk_size = max_small_prime / 1;  // TODO: tweak parameters later on
     total_chunks = (N + chunk_size - 1) / chunk_size;
 
     /* initializing data structures */
@@ -217,7 +227,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    int* thread_num = (int*) malloc(num_threads * sizeof(int));
+    int* thread_num = (int*)malloc(num_threads * sizeof(int));
     for (int i = 0; i < num_threads; ++i) thread_num[i] = i;
 
     /* static program */
@@ -227,7 +237,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < num_threads; ++i) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
-        pthread_create(&tid_static[i], &attr, run_thread_static, &thread_num[i]);
+        pthread_create(&tid_static[i], &attr, run_thread_static,
+                       &thread_num[i]);
     }
 
     for (int i = 0; i < num_threads; ++i) pthread_join(tid_static[i], NULL);
@@ -246,7 +257,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < num_threads; ++i) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
-        pthread_create(&tid_dynamic[i], &attr, run_thread_dynamic, &thread_num[i]);
+        pthread_create(&tid_dynamic[i], &attr, run_thread_dynamic,
+                       &thread_num[i]);
     }
 
     for (int i = 0; i < num_threads; ++i) pthread_join(tid_dynamic[i], NULL);
@@ -257,17 +269,21 @@ int main(int argc, char* argv[]) {
     //     for (int j = 0; j < primes[i].size; ++j)
     //         printf("%lld\n", primes[i].a[j]);
 
-    printf("static allocation data follows\n");
+    printf("static allocation stats follow\n\n");
     for (int i = 0; i < num_threads; ++i) {
         printf("thread %d:\n\twallclock: %lf\n\tcpuclock: %lf\n", i,
                wallclock_time_static[i], cpuclock_time_static[i]);
     }
 
-    printf("dynamic allocation data follows\n");
+    printf("\n");
+
+    printf("dynamic allocation stats follow\n\n");
     for (int i = 0; i < num_threads; ++i) {
         printf("thread %d:\n\twallclock: %lf\n\tcpuclock: %lf\n", i,
                wallclock_time_dynamic[i], cpuclock_time_dynamic[i]);
     }
+
+    printf("\n");
 
     /* freeing timing data */
     free(wallclock_time_static);
