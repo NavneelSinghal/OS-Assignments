@@ -1,9 +1,51 @@
 #ifndef INCLUDE_MYOWNTHREAD
 #define INCLUDE_MYOWNTHREAD
 
-#include "myOwnthreadstruct.h"
+#include "queue.h"
+#include <setjmp.h>
 
-int myThread_create(myThread_t* thread, const myThread_attr_t *attr, void *(*start_routine) (void*), void *arg);
+typedef struct tcb_t {
+    
+    /* thread identity */
+    int tid;
+    
+    /* stack size */
+    int stack_size;
+   
+    /* stack pointer end */
+    void* stack_start;
+
+    /* function call stuff */
+    void *(*start_routine)(void*);
+    void *arg;
+
+    /* for catching return values from the thread that just joined */
+    void *retval;
+
+    /* environment */
+    jmp_buf env;
+    
+    /* which thread is waiting for it to join */
+    struct tcb_t *join_caller_id;
+
+    /* which thread is it currently waiting for to join */
+    struct tcb_t *joiner;
+
+    /* is this the main thread? */
+    int is_main;
+
+    /* is this thread running? */
+    int is_finished;
+
+    /* add more stuff as and when needed */
+} tcb_t;
+
+typedef struct tcb_t *myThread_t;
+typedef int myThread_attr_t;
+
+// void myThread_init_main(myThread_t* thread, const myThread_attr_t *attr, void *(*start_routine) (void*), void *arg);
+
+int myThread_create(myThread_t* thread, const myThread_attr_t *attr, void* (*start_routine) (void*), void *arg);
 
 void myThread_exit(void *retval);
 
