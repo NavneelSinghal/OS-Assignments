@@ -14,8 +14,6 @@ node* node_create(void* data) {
     return n;
 }
 
-/* do a circular queue later on */
-
 queue* queue_create() {
     queue* ret;
     ret = (queue*)malloc(sizeof(queue));
@@ -37,17 +35,16 @@ void queue_push(queue* q, node* n) {
     if (q->head == NULL) {
         q->head = n;
         q->tail = n;
-        q->tail->nxt = q->head;
+        q->tail->nxt = NULL;
     } else {
         q->tail->nxt = n;
-        n->nxt = q->head;
+        q->tail = n;
+        q->tail->nxt = NULL;
     }
     ++q->size;
 }
 
-
-/* TODO */
-node* queue_pop(queue* q, void* data) {
+node* queue_erase(queue* q, void* data) {
     if (q == NULL) {
         fprintf(stderr, "tried popping from null queue");
         exit(1);
@@ -69,33 +66,40 @@ node* queue_pop(queue* q, void* data) {
         }
     } else {
         node *n = q->head;
-        node *prev = q->tail;
-        while (n->data != data && n->nxt != q->head) {
+        node *prev = NULL;
+        while (n != NULL && n->data != data) {
             prev = n;
             n = n->nxt;
         }
-        if (n == q->head) {
-            if (n->data == data) {
-
-            } else {
-                return NULL;
-            }
+        if (n == NULL) {
+            return NULL;
         } else {
-
+            --q->size;
+            if (n == q->head) {
+                q->head = q->head->nxt;
+                n->nxt = NULL;
+                return n;
+            } else if (n == q->tail) {
+                prev->nxt = NULL;
+                q->tail = prev;
+                return n;
+            } else {
+                prev->nxt = n->nxt;
+                n->nxt = NULL;
+                return n;
+            }
         }
     }
-    node* n = q->head;
-    q->head = q->head->nxt;
-    --q->size;
-    void* ret = n->data;
-    free(n);
-    return ret;
+}
+
+node* queue_peek(queue *q) {
+    return q->head;
 }
 
 void queue_destroy(queue* q) {
     if (q == NULL) return;
     while (q->size > 0) {
-        free(queue_pop(q));
+        free(queue_erase(q, q->head->data));
     }
     free(q);
 }

@@ -7,3 +7,5 @@ easy to do
 note that a scheduler itself needs to be a single "thread", i.e., of the type we are going to implement
 
 use setjmp and longjmp to implement jump back and forth between the actual thread and the scheduler
+
+SA_NODEFER as given in assignment spec

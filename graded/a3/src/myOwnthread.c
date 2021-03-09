@@ -7,6 +7,15 @@
 
 #include "../include/queue.h"
 
+/*
+ * TODO
+ * remaining stuff
+ *      - implement join and exit - see todo there
+ *      - implement locks - refer book
+ *      - implement condition variables - refer book
+ *
+ */
+
 // mangling code
 // TODO: attribute later on
 //
@@ -89,13 +98,6 @@ tcb_t *current_tcb = NULL;
 int available_tid = 2;
 
 /*
- * assumed api of queue (circular queue)
- *      - get next
- *      - remove node (given by the address) from queue
- *      - add node to the end of the queue
- */
-
-/*
  * assertions for the runnable queue:
  *      - no element in the queue is NULL or the queue itself is NULL
  *      - is_finished = 0
@@ -150,15 +152,15 @@ void scheduler() {
         node *front_tcb_node = queue_peek(runnable);
         current_tcb = front_tcb_node->data;
         if (current_tcb->is_finished == 1) {
+            // remove it from the front of the runnable queue
+            queue_erase(runnable, current_tcb);
             // add this node to the waiting queue
             queue_push(waiting, front_tcb_node);
-            // and remove it from the front of the runnable queue
-            queue_erase(runnable, front_tcb_node);
         } else {
             // rotate by 1 to get the next possible runnable thread
             // to the front of the runnable queue
             got_thread_to_run = 1;
-            queue_erase(runnable, front_tcb_node);
+            queue_erase(runnable, current_tcb);
             queue_push(runnable, front_tcb_node);
             break;
         }
@@ -166,6 +168,7 @@ void scheduler() {
     /* we'll always have a thread to run, for instance, main;
      * so do something while doing the first create thread where you do
      * add a function for running at exit, using the atexit function */
+    assert(got_thread_to_run != 0);
     disabled_interrupts = 0;
     longjmp(current_tcb->env, 1);
 }
@@ -175,6 +178,20 @@ void run_thread() {
     void *ret = current_tcb->start_routine(current_tcb->arg);
     // if not already exited, do the following here instead of the thread
     myThread_exit(ret);
+}
+
+void delete_thread(myThread_t thread) {
+    free(thread->stack_end);
+    free(thread);
+}
+
+void final_cleanup() {
+    // delete threads and stuff
+    // delete all stuff in waiting
+    queue_destroy(waiting);
+    free(queue_peek(runnable)->data); // this is main
+    free(runnable); // at exit, this has only main
+    delete_thread(scheduler_tcb);
 }
 
 void signal_handler(int sig) {
@@ -202,16 +219,19 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
                     void *(*start_routine)(void *), void *arg) {
     if (create_called == 0) {
         /* here signal handler is not in place as of now */
+        create_called = 1;
+
         runnable = queue_create();
         waiting = queue_create();
 
-        create_called = 1;
+        atexit(final_cleanup);
 
         // set up main's tcb and add it to the runnable queue
         tcb_t *main_tcb = (tcb_t *)malloc(sizeof(tcb_t));
         main_tcb->tid = 0;
         main_tcb->stack_size = 0;        // special case for main
         main_tcb->stack_start = NULL;    // special case for main
+        main_tcb->stack_end = NULL;    // special case for main
         main_tcb->start_routine = NULL;  // special case for main
         main_tcb->arg = NULL;            // special case for main
         main_tcb->retval = NULL;         // special case for main
@@ -237,6 +257,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         scheduler_tcb->stack_size = SCHEDULER_STACK_SIZE;
         scheduler_tcb->stack_start =
             (void *)malloc(SCHEDULER_STACK_SIZE) + SCHEDULER_STACK_SIZE - 1;
+        scheduler_tcb->stack_end = scheduler_tcb->stack_start - SCHEDULER_STACK_SIZE + 1;
         scheduler_tcb->start_routine = NULL;  // never used (really?)
         scheduler_tcb->arg = NULL;            // never used
         scheduler_tcb->retval = NULL;         // never used
@@ -266,6 +287,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         (*thread)->tid = available_tid++;
         (*thread)->stack_size = *attr;
         (*thread)->stack_start = (void *)malloc(*attr) + (*attr) - 1;
+        (*thread)->stack_end = (*thread)->stack_start - (*attr) + 1;
         (*thread)->start_routine = start_routine;
         (*thread)->arg = arg;
         (*thread)->retval = NULL;
@@ -297,7 +319,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
 
         custom_handler = (struct sigaction *)malloc(sizeof(struct sigaction));
         custom_handler->sa_handler = &signal_handler;
-        custom_handler->sa_flags = SA_NOMASK;
+        custom_handler->sa_flags = SA_NODEFER;
         sigaction(SIGVTALRM, custom_handler, NULL);
 
         disabled_interrupts = 1;
@@ -309,7 +331,8 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         (*thread) = (tcb_t *)malloc(sizeof(tcb_t));
         (*thread)->tid = available_tid++;
         (*thread)->stack_size = *attr;
-        (*thread)->stack_start = (void *)malloc(*attr) + *attr - 1;
+        (*thread)->stack_start = (void *)malloc(*attr) + (*attr) - 1;
+        (*thread)->stack_end = (*thread)->stack_start - (*attr) + 1;
         (*thread)->start_routine = start_routine;
         (*thread)->arg = arg;
         (*thread)->retval = NULL;
@@ -345,21 +368,29 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
     return (*thread)->tid;
 }
 
+/* TODO: implement this */
+/* revised TODO: see if this works */
 /* disable interrupts? - probably */
 void myThread_exit(void *retval) {
+    disabled_interrupts = 1;
     current_tcb->is_finished = 1;
     current_tcb->retval = retval;
+    // put this thread into the waiting queue (but it is finished; however this
+    // is valid since waiting queue is basically a buffer)
+    node *current_tcb_node = queue_erase(runnable, current_tcb);
+    queue_push(waiting, current_tcb_node);
     if (current_tcb->join_caller_id != NULL) {
-        // put the join caller into the ready queue
-        // go back to scheduler
-    } else {
-        // go to the scheduler
+        // put the join caller into the runnable queue
+        node *join_caller = queue_erase(waiting, current_tcb->join_caller_id);
+        queue_push(runnable, join_caller);
+        current_tcb->join_caller_id = NULL;
     }
+    // go back to scheduler
+    longjmp(scheduler_tcb->env, 1);
 }
 
 /* disable interrupts? - yes (same implementation as the signal handler) */
 int myThread_yield(void) {
-
     // the following two lines are taken care of by calling the scheduler
     // put this thread into the runnable queue or something? or is this already
     // the case and ofc long jump to the next queue by jumping to the scheduler?
@@ -384,13 +415,44 @@ int myThread_yield(void) {
     }
 }
 
+/* TODO: implement this */
 /* disable interrupts? - yes */
 void myThread_join(myThread_t thread, void **retval) {
+
     // check if is_finished
     // if not finished, put this in waiting queue and call scheduler
-    // get stuff from the thread it joins if finished
-    // free stuff from the thread that this thread was waiting for to join
-    // return or what? sounds fine to return
+    // do we need to do a setjmp for the current tho? probably yes since this
+    // behaviour is like yield but it goes into the waiting queue instead get
+    // stuff from the thread it joins if finished. free stuff from the thread
+    // that this thread was waiting for to join return or what? sounds fine to
+    // return
+
+    disabled_interrupts = 1;
+    current_tcb->joiner = thread;
+    
+    if (thread->is_finished) {
+        goto acquire_ret_val_and_free_stuff;
+    } else {
+        if (setjmp(current_tcb->env) == 0) {
+            // add this thread into the waiting queue and jump to the scheduler
+            node* n = queue_erase(runnable, current_tcb);
+            assert(n != NULL);
+            queue_push(waiting, n);
+            longjmp(scheduler_tcb->env, 1);
+        } else {
+            // coming back after finishing stuff, now thread has a return value in it
+            // free this thread
+            assert(thread->is_finished);
+            goto acquire_ret_val_and_free_stuff;
+        }
+    }
+
+acquire_ret_val_and_free_stuff:
+    current_tcb->joiner = NULL;
+    *retval = thread->retval;
+    delete_thread(thread);
+    disabled_interrupts = 0;
+    return;
 }
 
 int myThread_cancel(myThread_t thread);

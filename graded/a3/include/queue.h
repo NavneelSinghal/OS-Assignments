@@ -12,8 +12,6 @@ typedef struct queue_t {
     node* tail;
 } queue;
 
-/* TODO: implement everything for circular queue */
-
 /* create node */
 node* node_create(void* data);
 
@@ -23,7 +21,7 @@ queue* queue_create();
 /* push a node into the queue */
 void queue_push(queue* q, node* n);
 
-/* remove and return the node */
+/* remove and return the node if exists, return NULL otherwise */
 node* queue_erase(queue* q, void* data);
 
 /* gets the first node */

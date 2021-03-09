@@ -12,8 +12,11 @@ typedef struct tcb_t {
     /* stack size */
     int stack_size;
    
-    /* stack pointer end */
+    /* stack pointer to the first position in the stack */
     void* stack_start;
+
+    /* stack pointer to the last position in the stack */
+    void* stack_end;
 
     /* function call stuff */
     void *(*start_routine)(void*);
@@ -31,7 +34,7 @@ typedef struct tcb_t {
     /* which thread is it currently waiting for to join */
     struct tcb_t *joiner;
 
-    /* is this the main thread? */
+    /* is this the main thread? - maybe useful for debugging */
     int is_main;
 
     /* is this thread running? */
