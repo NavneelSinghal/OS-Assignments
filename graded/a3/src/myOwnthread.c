@@ -8,7 +8,7 @@
 
 #include "../include/queue.h"
 
-// #define NODEBUG
+#define NODEBUG
 
 #ifdef NODEBUG
 
@@ -32,7 +32,7 @@ void dprint(const char *format, ...) {
 void print_queue(queue *q) {
     node *n = q->head;
     while (n != NULL) {
-        printf("%d -> ", ((tcb_t*)n->data)->tid);
+        printf("%d -> ", ((tcb_t *)n->data)->tid);
         n = n->nxt;
     }
     printf("NULL\n");
@@ -107,6 +107,7 @@ static queue *runnable = NULL;
 static queue *waiting = NULL;
 
 static int create_called = 0;
+static int first_jump = 0;
 static int disabled_interrupts = 0;
 static struct sigaction *custom_handler;
 
@@ -156,38 +157,49 @@ static struct itimerval timer;
 void scheduler() {
     dprint("reached the scheduler");
     int got_thread_to_run = 0;
-    while (runnable->size > 0) {
+    if (!first_jump) {
+        first_jump = 1;
+        dprint("doing the first jump to main to continue creating the thread");
+        current_tcb = queue_peek(runnable)->data;
+        dprint("longjmp to current_tcb->env");
+        dprint("queue before longjmp");
         print_queue(runnable);
-        dprint("size of runnable is: %d", runnable->size);
-        node *front_tcb_node = queue_peek(runnable);
-        current_tcb = front_tcb_node->data;
-        dprint("id of the thread picked up from runnable: %d",
-               current_tcb->tid);
-        if (current_tcb->is_finished == 1) {
-            /* remove it from the front of the runnable queue */
-            queue_erase(runnable, current_tcb);
-            /* add this node to the waiting queue */
-            queue_push(waiting, front_tcb_node);
-        } else {
-            /* rotate by 1 to get the next possible runnable thread
-             * to the front of the runnable queue */
-            got_thread_to_run = 1;
-            dprint("got a thread to run");
-            dprint("id of the thread to be run: %d", current_tcb->tid);
-            queue_erase(runnable, current_tcb);
-            queue_push(runnable, front_tcb_node);
-            break;
+        disabled_interrupts = 0;
+        longjmp(current_tcb->env, 1);
+    } else {
+        while (runnable->size > 0) {
+            print_queue(runnable);
+            dprint("size of runnable is: %d", runnable->size);
+            node *front_tcb_node = queue_peek(runnable);
+            current_tcb = front_tcb_node->data;
+            dprint("id of the thread picked up from runnable: %d",
+                   current_tcb->tid);
+            if (current_tcb->is_finished == 1) {
+                /* remove it from the front of the runnable queue */
+                queue_erase(runnable, current_tcb);
+                /* add this node to the waiting queue */
+                queue_push(waiting, front_tcb_node);
+            } else {
+                /* rotate by 1 to get the next possible runnable thread
+                 * to the front of the runnable queue */
+                got_thread_to_run = 1;
+                dprint("got a thread to run");
+                dprint("id of the thread to be run: %d", current_tcb->tid);
+                queue_erase(runnable, current_tcb);
+                queue_push(runnable, front_tcb_node);
+                break;
+            }
         }
+        /* we'll always have a thread to run, for instance, main;
+         * so do something while doing the first create thread where you do
+         * add a function for running at exit, using the atexit function */
+        assert(got_thread_to_run == 1);
+        disabled_interrupts = 0;
+        dprint("longjmp to current_tcb->env");
+        dprint("queue before longjmp");
+        print_queue(runnable);
+        longjmp(current_tcb->env, 1);
     }
-    /* we'll always have a thread to run, for instance, main;
-     * so do something while doing the first create thread where you do
-     * add a function for running at exit, using the atexit function */
-    assert(got_thread_to_run == 1);
-    disabled_interrupts = 0;
-    dprint("longjmp to current_tcb->env");
-    dprint("queue before longjmp");
-    print_queue(runnable);
-    longjmp(current_tcb->env, 1);
 }
 
 void run_thread() {

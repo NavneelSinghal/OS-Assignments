@@ -41,8 +41,8 @@ int main() {
     }
 
     for (int i = 0; i < N; ++i) {
-        printf("MAIN: joining thread\n");
         myThread_join(thread[i], NULL);
+        printf("MAIN: joined thread\n");
     }
 
     free(arg);
