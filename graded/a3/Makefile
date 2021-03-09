@@ -1,3 +1,6 @@
+runrecyield: bin/recyield
+	bin/recyield
+
 runyield: bin/yield
 	bin/yield
 
@@ -6,6 +9,9 @@ runmultiple: bin/multiple_threads
 
 runsingle: bin/single_thread
 	bin/single_thread
+
+bin/recyield: tests/yield_nested.c lib/libmyOwnthread.so
+	gcc -O0 -g -o $@ $^ -L./lib -lmyOwnthread
 
 bin/yield: tests/yield.c lib/libmyOwnthread.so
 	gcc -O0 -g -o $@ $^ -L./lib -lmyOwnthread

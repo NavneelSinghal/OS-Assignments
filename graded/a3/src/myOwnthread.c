@@ -32,10 +32,10 @@ void dprint(const char *format, ...) {
 void print_queue(queue *q) {
     node *n = q->head;
     while (n != NULL) {
-        printf("%d -> ", ((tcb_t *)n->data)->tid);
+        dprint("%d -> ", ((tcb_t *)n->data)->tid);
         n = n->nxt;
     }
-    printf("NULL\n");
+    dprint("NULL\n");
 }
 
 #endif
@@ -304,10 +304,6 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
 
         dprint("allocating main_tcb completed");
 
-        dprint("adding main_tcb to runnable");
-
-        queue_push(runnable, node_create(main_tcb));
-
         dprint("size of runnable is %d", runnable->size);
         dprint("size of waiting is %d", waiting->size);
         dprint("allocating scheduler_tcb...");
@@ -396,8 +392,10 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
 
         dprint("allocating thread_tcb completed");
 
+        dprint("adding main_tcb to runnable");
+        queue_push(runnable, node_create(main_tcb));
+        
         dprint("adding thread_tcb to the runnable queue");
-
         queue_push(runnable, node_create(*thread));
 
         dprint("size of runnable is %d", runnable->size);
@@ -545,6 +543,8 @@ void myThread_join(myThread_t thread, void **retval) {
      * that this thread was waiting for to join return or what? sounds fine to
      * return */
 
+    dprint("inside join now in thread %d, disabling interrupts...", current_tcb->tid);
+
     disabled_interrupts = 1;
     current_tcb->joiner = thread;
     thread->join_caller_id = current_tcb;
@@ -552,6 +552,7 @@ void myThread_join(myThread_t thread, void **retval) {
     if (thread->is_finished) {
         goto acquire_ret_val_and_free_stuff;
     } else {
+        dprint("thread hasn't finished, going to sleep");
         if (setjmp(current_tcb->env) == 0) {
             /* add this thread into the waiting queue and jump to the scheduler
              */
@@ -560,6 +561,7 @@ void myThread_join(myThread_t thread, void **retval) {
             queue_push(waiting, n);
             longjmp(scheduler_tcb->env, 1);
         } else {
+            dprint("thread being joined on is now finished, starting cleanup and resuming operation");
             /* coming back after finishing stuff, now thread has a return value
              * in it free this thread */
             assert(thread->is_finished);
@@ -568,6 +570,7 @@ void myThread_join(myThread_t thread, void **retval) {
     }
 
 acquire_ret_val_and_free_stuff:
+    dprint("cleanup for thread %d started", thread->tid);
     current_tcb->joiner = NULL;
     if (retval != NULL) *retval = thread->retval;
     delete_thread(thread);
