@@ -21,7 +21,7 @@ void* a(void* arg) {
 }
 
 int main() {
-    
+
     int n = 100;
 
     int* arg = (int*)malloc(sizeof(int));
@@ -31,9 +31,8 @@ int main() {
 
     myThread_attr_t attr;
     myThread_attr_init(&attr);
- 
+    
     myThread_t thread;
-    // see what happens if arg is NULL
 
     dprint("MAIN: creating thread");
 
@@ -46,8 +45,6 @@ int main() {
     myThread_join(thread, NULL);
    
     dprint("MAIN: thread joined, exiting...");
-
-    free(arg);
 
     return 0;
 }

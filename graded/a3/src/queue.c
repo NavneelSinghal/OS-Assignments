@@ -41,7 +41,7 @@ void queue_push(queue* q, node* n) {
         q->tail = n;
         q->tail->nxt = NULL;
     }
-    ++q->size;
+    ++(q->size);
 }
 
 node* queue_erase(queue* q, void* data) {
@@ -58,7 +58,7 @@ node* queue_erase(queue* q, void* data) {
             node *n = q->head;
             q->head = NULL;
             q->tail = NULL;
-            --q->size;
+            --(q->size);
             n->nxt = NULL;
             return n;
         } else {
@@ -74,7 +74,7 @@ node* queue_erase(queue* q, void* data) {
         if (n == NULL) {
             return NULL;
         } else {
-            --q->size;
+            --(q->size);
             if (n == q->head) {
                 q->head = q->head->nxt;
                 n->nxt = NULL;
@@ -99,7 +99,10 @@ node* queue_peek(queue *q) {
 void queue_destroy(queue* q) {
     if (q == NULL) return;
     while (q->size > 0) {
-        free(queue_erase(q, q->head->data));
+        node* n = queue_erase(q, q->head->data);
+        // TODO: comment out later on
+        // free(n->data);
+        free(n);
     }
     free(q);
 }

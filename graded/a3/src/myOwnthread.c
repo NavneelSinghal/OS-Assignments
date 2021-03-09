@@ -7,13 +7,34 @@
 
 #include "../include/queue.h"
 
+#define NODEBUG
+
+#ifdef NODEBUG
+
+#define dprint(...)
+
+#else
+
+#include <stdarg.h>
+#include <stdio.h>
+void dprint(const char *format, ...) {
+    va_list args;
+    // fprintf(stderr, "Log:\n");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fprintf(stderr, "\n");
+    fflush(stdout);
+}
+
+#endif
+
 /*
  * TODO
  * remaining stuff
  *      - implement join and exit - see todo there
  *      - implement locks - refer book
  *      - implement condition variables - refer book
- *
  */
 
 // mangling code
@@ -63,28 +84,9 @@ address_t ptr_mangle(address_t addr) {
 }
 
 #endif
-// #ifndef JB_BP /* in libc >= 3.5 they hide JB_* and mangle SP */
-// #define JB_BP 3
-// #define JB_SP 4
-// #include <features.h> /* header file defining the GLIBC version */
-// #if (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 8)
-// /* the new mangling method (as of 2.8 (or even 2.7?) */
-// #warning Using the new pointer mangling method (glibc 2.8 and up)
-//
-// #define PTR_MANGLE(var)       \
-//     asm("xorl %%gs:%c2, %0\n" \
-//         "roll $9, %0"         \
-//         : "=r"(var)           \
-//         : "0"(var), "i"(24))
-//
-// #else /* the original pointer mangling method */
-// #warning Using the old pointer mangling method (up to glibc 2.7)
-// #define PTR_MANGLE(var) asm("xorl %%gs:%c2, %0" : "=r"(var) : "0"(var),
-// "i"(24)) #endif #else /* JB_BP and JB_SP are available and no mangling needed
-// */ #warning No pointer mangling is necessary with this glibc #define
-// PTR_MANGLE(var) /* no-op */ #endif
 
-#define SCHEDULER_STACK_SIZE 1000
+/* define enough stack size for the scheduler to run without any issues */
+#define SCHEDULER_STACK_SIZE 100000
 #define DEFAULT_STACK_SIZE 1000000
 
 // 0 reserved for main
@@ -92,10 +94,18 @@ address_t ptr_mangle(address_t addr) {
 // other threads start from 2
 // scheduler is semantically a thread but not really a thread
 
-tcb_t *scheduler_tcb = NULL;
-tcb_t *current_tcb = NULL;
+static tcb_t *main_tcb = NULL;
+static tcb_t *scheduler_tcb = NULL;
+static tcb_t *current_tcb = NULL;
 
-int available_tid = 2;
+static int available_tid = 2;
+
+static queue *runnable = NULL;
+static queue *waiting = NULL;
+
+static int create_called = 0;
+static int disabled_interrupts = 0;
+static struct sigaction *custom_handler;
 
 /*
  * assertions for the runnable queue:
@@ -118,7 +128,7 @@ int available_tid = 2;
  * assertions for the waiting queue:
  *      - no element in the
  *      - no element in the queue is NULL or the queue itself is NULL
- *      - is_finished = 0
+ *      - is_finished = 0 or 1
  *      - 0 <= tid < number of tid's assigned
  *      - stacksize is valid
  *      - stack_start is valid
@@ -133,24 +143,19 @@ int available_tid = 2;
  *      - the function is actually inside a join call
  */
 
-queue *runnable = NULL;
-queue *waiting = NULL;
-
-int create_called = 0;
-
-/* TODO: see where to disable interrupts and where not to */
-int disabled_interrupts = 0;
-
 /*
  * invariant for scheduler
  *      - long jump to scheduler happens only when interrupts are disabled
  *      - whenever we return from scheduler, interrupts are enabled
  */
 void scheduler() {
+    dprint("reached the scheduler");
     int got_thread_to_run = 0;
     while (runnable->size > 0) {
+        dprint("size of runnable is: %d", runnable->size);
         node *front_tcb_node = queue_peek(runnable);
         current_tcb = front_tcb_node->data;
+        dprint("id of the thread picked up from runnable: %d", current_tcb->tid);
         if (current_tcb->is_finished == 1) {
             // remove it from the front of the runnable queue
             queue_erase(runnable, current_tcb);
@@ -160,6 +165,8 @@ void scheduler() {
             // rotate by 1 to get the next possible runnable thread
             // to the front of the runnable queue
             got_thread_to_run = 1;
+            dprint("got a thread to run");
+            dprint("id of the thread to be run: %d", current_tcb->tid);
             queue_erase(runnable, current_tcb);
             queue_push(runnable, front_tcb_node);
             break;
@@ -168,8 +175,9 @@ void scheduler() {
     /* we'll always have a thread to run, for instance, main;
      * so do something while doing the first create thread where you do
      * add a function for running at exit, using the atexit function */
-    assert(got_thread_to_run != 0);
+    assert(got_thread_to_run == 1);
     disabled_interrupts = 0;
+    dprint("longjmp to current_tcb->env");
     longjmp(current_tcb->env, 1);
 }
 
@@ -188,10 +196,25 @@ void delete_thread(myThread_t thread) {
 void final_cleanup() {
     // delete threads and stuff
     // delete all stuff in waiting
-    queue_destroy(waiting);
-    free(queue_peek(runnable)->data); // this is main
-    free(runnable); // at exit, this has only main
+    while (waiting->size > 0) {
+        node *n = queue_erase(waiting, queue_peek(waiting)->data);
+        // free(n->data);
+        // assumed to be freed when we free the thread during join
+        free(n);
+    }
+    free(waiting);
+    
+    assert(runnable->size == 1);
+    while (runnable->size > 0) {
+        node *n = queue_erase(runnable, queue_peek(runnable)->data);
+        free(n->data);
+        free(n);
+    }
+    // free(queue_peek(runnable)->data);  // this is main
+    free(runnable);                    // at exit, this has only main
+    
     delete_thread(scheduler_tcb);
+    free(custom_handler);
 }
 
 void signal_handler(int sig) {
@@ -201,7 +224,9 @@ void signal_handler(int sig) {
     disabled_interrupts = 1;
     /* due to the invariant for scheduler, whenever we get out of the scheduler,
      * interrupts get enabled automatically */
+    dprint("inside signal handler");
     if (setjmp(current_tcb->env) == 0) {
+        dprint("jumping to scheduler from inside signal handler");
         longjmp(scheduler_tcb->env, 1);
     } else {
         /* is disabled_interrupts always 0 before this?
@@ -213,25 +238,33 @@ void signal_handler(int sig) {
     }
 }
 
-struct sigaction *custom_handler;
-
 int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
                     void *(*start_routine)(void *), void *arg) {
+    dprint("inside myThread_create");
+
     if (create_called == 0) {
         /* here signal handler is not in place as of now */
         create_called = 1;
 
+        dprint("myThread_create called for the first time");
+
         runnable = queue_create();
         waiting = queue_create();
 
+        dprint("runnable and waiting queues created");
+        dprint("size of runnable is %d", runnable->size);
+        dprint("size of waiting is %d", waiting->size);
+
         atexit(final_cleanup);
 
+        dprint("allocating main_tcb...");
+
         // set up main's tcb and add it to the runnable queue
-        tcb_t *main_tcb = (tcb_t *)malloc(sizeof(tcb_t));
+        main_tcb = (tcb_t *)malloc(sizeof(tcb_t));
         main_tcb->tid = 0;
         main_tcb->stack_size = 0;        // special case for main
         main_tcb->stack_start = NULL;    // special case for main
-        main_tcb->stack_end = NULL;    // special case for main
+        main_tcb->stack_end = NULL;      // special case for main
         main_tcb->start_routine = NULL;  // special case for main
         main_tcb->arg = NULL;            // special case for main
         main_tcb->retval = NULL;         // special case for main
@@ -240,6 +273,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
             // if we are now in main coming from the scheduler
             // returning for the first time, just return from
             // the call to create thread
+            dprint("returned from scheduler to main for the first time");
             return 2;  // return thread id as needed
         }
 
@@ -248,7 +282,15 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         main_tcb->is_main = 1;
         main_tcb->is_finished = 0;
 
+        dprint("allocating main_tcb completed");
+
+        dprint("adding main_tcb to runnable");
+
         queue_push(runnable, node_create(main_tcb));
+
+        dprint("size of runnable is %d", runnable->size);
+        dprint("size of waiting is %d", waiting->size);
+        dprint("allocating scheduler_tcb...");
 
         /* scheduler's tcb creation */
         // set up scheduler's tcb and DONT add it to the queue (keep it global)
@@ -257,12 +299,13 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         scheduler_tcb->stack_size = SCHEDULER_STACK_SIZE;
         scheduler_tcb->stack_start =
             (void *)malloc(SCHEDULER_STACK_SIZE) + SCHEDULER_STACK_SIZE - 1;
-        scheduler_tcb->stack_end = scheduler_tcb->stack_start - SCHEDULER_STACK_SIZE + 1;
+        scheduler_tcb->stack_end =
+            scheduler_tcb->stack_start - SCHEDULER_STACK_SIZE + 1;
         scheduler_tcb->start_routine = NULL;  // never used (really?)
         scheduler_tcb->arg = NULL;            // never used
         scheduler_tcb->retval = NULL;         // never used
 
-        address_t scheduler_sp = (address_t)scheduler_tcb->stack_start;
+        address_t scheduler_sp = (address_t)(scheduler_tcb->stack_start);
         // ensure proper alignment, since it was originally void*
         scheduler_sp >>= 3;
         scheduler_sp <<= 3;
@@ -271,7 +314,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
             (address_t)ptr_mangle((address_t)scheduler_sp);
         // program counter for scheduler
         scheduler_tcb->env->__jmpbuf[JB_PC] =
-            (address_t)ptr_mangle((address_t)scheduler_tcb->start_routine);
+            (address_t)ptr_mangle((address_t)scheduler);
         // base pointer to scheduler
         scheduler_tcb->env->__jmpbuf[JB_BP] =
             (address_t)ptr_mangle((address_t)scheduler_sp);
@@ -281,13 +324,20 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         scheduler_tcb->is_main = 0;            // never used
         scheduler_tcb->is_finished = 0;        // never used
 
+        dprint("allocating scheduler_tcb completed");
+
         /* thread tcb creation */
+
+        dprint("allocating thread_tcb...");
+
+        int stack_size = DEFAULT_STACK_SIZE;
+        if (attr != NULL) stack_size = *attr;
 
         (*thread) = (tcb_t *)malloc(sizeof(tcb_t));
         (*thread)->tid = available_tid++;
         (*thread)->stack_size = *attr;
-        (*thread)->stack_start = (void *)malloc(*attr) + (*attr) - 1;
-        (*thread)->stack_end = (*thread)->stack_start - (*attr) + 1;
+        (*thread)->stack_start = (void *)malloc(stack_size) + (stack_size) - 1;
+        (*thread)->stack_end = (*thread)->stack_start - (stack_size) + 1;
         (*thread)->start_routine = start_routine;
         (*thread)->arg = arg;
         (*thread)->retval = NULL;
@@ -305,7 +355,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
             (address_t)ptr_mangle((address_t)thread_sp);
         // program counter for thread function
         (*thread)->env->__jmpbuf[JB_PC] =
-            (address_t)ptr_mangle((address_t)start_routine);
+            (address_t)ptr_mangle((address_t)run_thread);
         // base pointer for the thread function
         (*thread)->env->__jmpbuf[JB_BP] =
             (address_t)ptr_mangle((address_t)thread_sp);
@@ -315,7 +365,15 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         (*thread)->is_main = 0;
         (*thread)->is_finished = 0;
 
+        dprint("allocating thread_tcb completed");
+
+        dprint("adding thread_tcb to the runnable queue");
+
         queue_push(runnable, node_create(*thread));
+
+        dprint("size of runnable is %d", runnable->size);
+        dprint("size of waiting is %d", waiting->size);
+        dprint("setting up signal handler");
 
         custom_handler = (struct sigaction *)malloc(sizeof(struct sigaction));
         custom_handler->sa_handler = &signal_handler;
@@ -323,16 +381,26 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         sigaction(SIGVTALRM, custom_handler, NULL);
 
         disabled_interrupts = 1;
+
+        dprint("signal handler set up completed");
+
+        dprint("longjmp to scheduler");
+
         longjmp(scheduler_tcb->env, 1);
 
     } else {
         disabled_interrupts = 1;
 
+        dprint("disabled interrupts and allocating thread_tcb...");
+
+        int stack_size = DEFAULT_STACK_SIZE;
+        if (attr != NULL) stack_size = *attr;
+        
         (*thread) = (tcb_t *)malloc(sizeof(tcb_t));
         (*thread)->tid = available_tid++;
-        (*thread)->stack_size = *attr;
-        (*thread)->stack_start = (void *)malloc(*attr) + (*attr) - 1;
-        (*thread)->stack_end = (*thread)->stack_start - (*attr) + 1;
+        (*thread)->stack_size = stack_size;
+        (*thread)->stack_start = (void *)malloc(stack_size) + (stack_size) - 1;
+        (*thread)->stack_end = (*thread)->stack_start - (stack_size) + 1;
         (*thread)->start_routine = start_routine;
         (*thread)->arg = arg;
         (*thread)->retval = NULL;
@@ -358,12 +426,20 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         (*thread)->is_main = 0;
         (*thread)->is_finished = 0;
 
+        dprint("allocating thread_tcb completed");
+
+        dprint("adding thread_tcb to the runnable queue");
+
         queue_push(runnable, node_create(*thread));
+
+        dprint("enabling interrupts");
 
         disabled_interrupts = 0;
 
         return (*thread)->tid;
     }
+
+    dprint("returning thread id to the thread-creating function");
 
     return (*thread)->tid;
 }
@@ -413,12 +489,12 @@ int myThread_yield(void) {
          * interrupts are already on */
         assert(disabled_interrupts == 0);
     }
+    return 0;
 }
 
 /* TODO: implement this */
 /* disable interrupts? - yes */
 void myThread_join(myThread_t thread, void **retval) {
-
     // check if is_finished
     // if not finished, put this in waiting queue and call scheduler
     // do we need to do a setjmp for the current tho? probably yes since this
@@ -429,19 +505,20 @@ void myThread_join(myThread_t thread, void **retval) {
 
     disabled_interrupts = 1;
     current_tcb->joiner = thread;
-    
+    thread->join_caller_id = current_tcb;
+
     if (thread->is_finished) {
         goto acquire_ret_val_and_free_stuff;
     } else {
         if (setjmp(current_tcb->env) == 0) {
             // add this thread into the waiting queue and jump to the scheduler
-            node* n = queue_erase(runnable, current_tcb);
+            node *n = queue_erase(runnable, current_tcb);
             assert(n != NULL);
             queue_push(waiting, n);
             longjmp(scheduler_tcb->env, 1);
         } else {
-            // coming back after finishing stuff, now thread has a return value in it
-            // free this thread
+            // coming back after finishing stuff, now thread has a return value
+            // in it free this thread
             assert(thread->is_finished);
             goto acquire_ret_val_and_free_stuff;
         }
@@ -449,7 +526,7 @@ void myThread_join(myThread_t thread, void **retval) {
 
 acquire_ret_val_and_free_stuff:
     current_tcb->joiner = NULL;
-    *retval = thread->retval;
+    if (retval != NULL) *retval = thread->retval;
     delete_thread(thread);
     disabled_interrupts = 0;
     return;
@@ -458,10 +535,17 @@ acquire_ret_val_and_free_stuff:
 int myThread_cancel(myThread_t thread);
 
 /* probably completed */
-int myThread_attr_init(myThread_attr_t *attr) { *attr = DEFAULT_STACK_SIZE; }
+int myThread_attr_init(myThread_attr_t *attr) {
+    if (attr == NULL) return -1;
+    *attr = DEFAULT_STACK_SIZE;
+    return 0;
+}
 
 /* probably completed */
-int myThread_attr_destroy(myThread_attr_t *attr) { free(attr); }
+int myThread_attr_destroy(myThread_attr_t *attr) {
+    free(attr);
+    return 0;
+}
 
 /* probably completed */
 myThread_t myThread_self(void) { return current_tcb; }
