@@ -43,7 +43,7 @@ int main() {
         *(arg + i) = n;
     }
 
-    mutex = myThread_mutex_create();
+    myThread_mutex_init(&mutex, NULL);
 
     dprint("MAIN: initializing attributes");
 
@@ -71,6 +71,8 @@ int main() {
     }
 
     free(arg);
+
+    myThread_mutex_destroy(&mutex);
 
     dprint("MAIN: thread joined, exiting...");
 

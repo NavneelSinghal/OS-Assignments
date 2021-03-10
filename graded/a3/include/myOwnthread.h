@@ -46,21 +46,23 @@ void myThread_join(myThread_t thread, void** retval);
 /* lock definition */
 typedef struct mutex_t {
     int is_free;
-    queue* waiting;
+    queue *waiting;
 } mutex_t;
 
 /* lock functions */
-mutex_t myThread_mutex_create();
+void myThread_mutex_init(mutex_t *mutex, void *attr);
 void myThread_mutex_destroy(mutex_t *mutex);
 void myThread_mutex_lock(mutex_t *mutex);
 void myThread_mutex_unlock(mutex_t *mutex);
 
 /* condition variable definition */
 typedef struct cv_t {
-
+    queue *waiting;
 } cv_t;
 
 /* condition variable functions */
-
+void myThread_cond_wait(cv_t *cond, mutex_t *mutex);
+void myThread_cond_signal(cv_t *cond);
+void myThread_cond_broadcast(cv_t *cond);
 
 #endif

@@ -30,7 +30,8 @@ void* a(void* arg) {
     }
     printf("common value becomes %d\n", common);
     myThread_yield();
-    for (int i = 0; i < WAIT_ITER; ++i);
+    for (int i = 0; i < WAIT_ITER; ++i)
+        ;
     myThread_mutex_unlock(&mutex);
     myThread_exit(NULL);
 }
@@ -43,7 +44,7 @@ int main() {
         *(arg + i) = n;
     }
 
-    mutex = myThread_mutex_create();
+    myThread_mutex_init(&mutex, NULL);
 
     dprint("MAIN: initializing attributes");
 
@@ -59,7 +60,8 @@ int main() {
 
     for (int i = 0; i < 20; ++i) {
         printf("thread id is %d\n", myThread_self()->tid);
-        for (int i = 0; i < WAIT_ITER; ++i);
+        for (int i = 0; i < WAIT_ITER; ++i)
+            ;
         myThread_yield();
     }
 
@@ -70,6 +72,7 @@ int main() {
     }
 
     free(arg);
+    myThread_mutex_destroy(&mutex);
 
     dprint("MAIN: thread joined, exiting...");
 

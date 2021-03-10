@@ -8,18 +8,18 @@
 
 #include "../include/queue.h"
 
-// #define NODEBUG
+#define NODEBUG
 
 #ifdef NODEBUG
 
-#define dprint(...)
-#define print_queue(...)
+#define debug_print(...)
+#define debug_print_queue(...)
 
 #else
 
 #include <stdarg.h>
 #include <stdio.h>
-void dprint(const char *format, ...) {
+void debug_print(const char *format, ...) {
     va_list args;
     /* fprintf(stderr, "Log:\n"); */
     va_start(args, format);
@@ -29,28 +29,19 @@ void dprint(const char *format, ...) {
     fflush(stdout);
 }
 
-void print_queue(queue *q) {
+void debug_print_queue(queue *q) {
     node *n = q->head;
     while (n != NULL) {
-        dprint("%d -> ", ((tcb_t *)n->data)->tid);
+        debug_print("%d -> ", ((tcb_t *)n->data)->tid);
         n = n->nxt;
     }
-    dprint("NULL\n");
+    debug_print("NULL\n");
 }
 
 #endif
 
-/*
- * TODO
- * remaining stuff
- *      - implement join and exit - see todo there
- *      - implement locks - refer book
- *      - implement condition variables - refer book
- */
-
 #ifdef __x86_64__
 
-/* code for 64 bit Intel arch */
 #define JB_BP 1
 #define JB_SP 6
 #define JB_PC 7
@@ -67,7 +58,7 @@ unsigned long ptr_mangle(unsigned long addr) {
 }
 
 #else
-/* code for 32 bit Intel arch */
+
 #define JB_BP 3
 #define JB_SP 4
 #define JB_PC 5
@@ -149,31 +140,36 @@ static struct itimerval timer;
  *      - the function is actually inside a join call
  */
 
+/********************************
+ * Thread-related functionality *
+ ********************************/
+
 /*
  * invariant for scheduler
  *      - long jump to scheduler happens only when interrupts are disabled
  *      - whenever we return from scheduler, interrupts are enabled
  */
 void scheduler() {
-    dprint("reached the scheduler");
+    debug_print("reached the scheduler");
     int got_thread_to_run = 0;
     if (!first_jump) {
         first_jump = 1;
-        dprint("doing the first jump to main to continue creating the thread");
+        debug_print(
+            "doing the first jump to main to continue creating the thread");
         current_tcb = queue_peek(runnable)->data;
-        dprint("longjmp to current_tcb->env");
-        dprint("queue before longjmp");
-        print_queue(runnable);
+        debug_print("longjmp to current_tcb->env");
+        debug_print("queue before longjmp");
+        debug_print_queue(runnable);
         disabled_interrupts = 0;
         longjmp(current_tcb->env, 1);
     } else {
         while (runnable->size > 0) {
-            print_queue(runnable);
-            dprint("size of runnable is: %d", runnable->size);
+            debug_print_queue(runnable);
+            debug_print("size of runnable is: %d", runnable->size);
             node *front_tcb_node = queue_peek(runnable);
             current_tcb = front_tcb_node->data;
-            dprint("id of the thread picked up from runnable: %d",
-                   current_tcb->tid);
+            debug_print("id of the thread picked up from runnable: %d",
+                        current_tcb->tid);
             if (current_tcb->is_finished == 1) {
                 /* remove it from the front of the runnable queue */
                 queue_erase(runnable, current_tcb);
@@ -183,8 +179,8 @@ void scheduler() {
                 /* rotate by 1 to get the next possible runnable thread
                  * to the front of the runnable queue */
                 got_thread_to_run = 1;
-                dprint("got a thread to run");
-                dprint("id of the thread to be run: %d", current_tcb->tid);
+                debug_print("got a thread to run");
+                debug_print("id of the thread to be run: %d", current_tcb->tid);
                 queue_erase(runnable, current_tcb);
                 queue_push(runnable, front_tcb_node);
                 break;
@@ -195,13 +191,16 @@ void scheduler() {
          * add a function for running at exit, using the atexit function */
         assert(got_thread_to_run == 1);
         disabled_interrupts = 0;
-        dprint("longjmp to current_tcb->env");
-        dprint("queue before longjmp");
-        print_queue(runnable);
+        debug_print("longjmp to current_tcb->env");
+        debug_print("queue before longjmp");
+        debug_print_queue(runnable);
         longjmp(current_tcb->env, 1);
     }
 }
 
+/*
+ * wrapper function to jump to when executing a thread
+ */
 void run_thread() {
     assert(!(current_tcb->is_main));
     void *ret = current_tcb->start_routine(current_tcb->arg);
@@ -209,11 +208,17 @@ void run_thread() {
     myThread_exit(ret);
 }
 
+/*
+ * function for clearing up a thread
+ */
 void delete_thread(myThread_t thread) {
     free(thread->stack_end);
     free(thread);
 }
 
+/*
+ * exit handler in case the thread system has been initialized
+ */
 void final_cleanup() {
     /* delete threads and stuff */
     /* delete all stuff in waiting */
@@ -237,10 +242,10 @@ void final_cleanup() {
     free(custom_handler);
 }
 
-/* TODO: check this */
+/*
+ * signal handler for SIGVTALRM
+ */
 void signal_handler(int sig) {
-    /* added line - does this work for handling signal handler inside itself?
-     */
     if (disabled_interrupts) return;
 
     /* disabling interrupts to ensure that signal handler never calls itself
@@ -249,9 +254,9 @@ void signal_handler(int sig) {
     disabled_interrupts = 1;
     /* due to the invariant for scheduler, whenever we get out of the scheduler,
      * interrupts get enabled automatically */
-    dprint("inside signal handler");
+    debug_print("inside signal handler");
     if (setjmp(current_tcb->env) == 0) {
-        dprint("jumping to scheduler from inside signal handler");
+        debug_print("jumping to scheduler from inside signal handler");
         longjmp(scheduler_tcb->env, 1);
     } else {
         /* is disabled_interrupts always 0 before this?
@@ -263,26 +268,30 @@ void signal_handler(int sig) {
     }
 }
 
+/************************
+ * Thread API functions *
+ ************************/
+
 int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
                     void *(*start_routine)(void *), void *arg) {
-    dprint("inside myThread_create");
+    debug_print("inside myThread_create");
 
     if (create_called == 0) {
         /* here signal handler is not in place as of now */
         create_called = 1;
 
-        dprint("myThread_create called for the first time");
+        debug_print("myThread_create called for the first time");
 
         runnable = queue_create();
         waiting = queue_create();
 
-        dprint("runnable and waiting queues created");
-        dprint("size of runnable is %d", runnable->size);
-        dprint("size of waiting is %d", waiting->size);
+        debug_print("runnable and waiting queues created");
+        debug_print("size of runnable is %d", runnable->size);
+        debug_print("size of waiting is %d", waiting->size);
 
         atexit(final_cleanup);
 
-        dprint("allocating main_tcb...");
+        debug_print("allocating main_tcb...");
 
         /* set up main's tcb and add it to the runnable queue */
         main_tcb = (tcb_t *)malloc(sizeof(tcb_t));
@@ -298,7 +307,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
             /* if we are now in main coming from the scheduler
              * doing a longjmp for the first time, just return
              * from the call to create thread */
-            dprint("returned from scheduler to main for the first time");
+            debug_print("returned from scheduler to main for the first time");
             return 2; /* return thread id as needed */
         }
 
@@ -307,11 +316,11 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         main_tcb->is_main = 1;
         main_tcb->is_finished = 0;
 
-        dprint("allocating main_tcb completed");
+        debug_print("allocating main_tcb completed");
 
-        dprint("size of runnable is %d", runnable->size);
-        dprint("size of waiting is %d", waiting->size);
-        dprint("allocating scheduler_tcb...");
+        debug_print("size of runnable is %d", runnable->size);
+        debug_print("size of waiting is %d", waiting->size);
+        debug_print("allocating scheduler_tcb...");
 
         /*
          * scheduler's tcb creation
@@ -350,13 +359,13 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         scheduler_tcb->is_main = 0;           /* never used */
         scheduler_tcb->is_finished = 0;       /* never used */
 
-        dprint("allocating scheduler_tcb completed");
+        debug_print("allocating scheduler_tcb completed");
 
         /*
          * thread tcb creation
          */
 
-        dprint("allocating thread_tcb...");
+        debug_print("allocating thread_tcb...");
 
         int stack_size = DEFAULT_STACK_SIZE;
         if (attr != NULL) stack_size = *attr;
@@ -395,17 +404,17 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         (*thread)->is_main = 0;
         (*thread)->is_finished = 0;
 
-        dprint("allocating thread_tcb completed");
+        debug_print("allocating thread_tcb completed");
 
-        dprint("adding main_tcb to runnable");
+        debug_print("adding main_tcb to runnable");
         queue_push(runnable, node_create(main_tcb));
 
-        dprint("adding thread_tcb to the runnable queue");
+        debug_print("adding thread_tcb to the runnable queue");
         queue_push(runnable, node_create(*thread));
 
-        dprint("size of runnable is %d", runnable->size);
-        dprint("size of waiting is %d", waiting->size);
-        dprint("setting up signal handler");
+        debug_print("size of runnable is %d", runnable->size);
+        debug_print("size of waiting is %d", waiting->size);
+        debug_print("setting up signal handler");
 
         /* setting the signal handler */
 
@@ -426,16 +435,16 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
 
         disabled_interrupts = 1;
 
-        dprint("signal handler set up completed");
+        debug_print("signal handler set up completed");
 
-        dprint("longjmp to scheduler");
+        debug_print("longjmp to scheduler");
 
         longjmp(scheduler_tcb->env, 1);
 
     } else {
         disabled_interrupts = 1;
 
-        dprint("disabled interrupts and allocating thread_tcb...");
+        debug_print("disabled interrupts and allocating thread_tcb...");
 
         int stack_size = DEFAULT_STACK_SIZE;
         if (attr != NULL) stack_size = *attr;
@@ -473,20 +482,20 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         (*thread)->is_main = 0;
         (*thread)->is_finished = 0;
 
-        dprint("allocating thread_tcb completed");
+        debug_print("allocating thread_tcb completed");
 
-        dprint("adding thread_tcb to the runnable queue");
+        debug_print("adding thread_tcb to the runnable queue");
 
         queue_push(runnable, node_create(*thread));
 
-        dprint("enabling interrupts");
+        debug_print("enabling interrupts");
 
         disabled_interrupts = 0;
 
         return (*thread)->tid;
     }
 
-    dprint("returning thread id to the thread-creating function");
+    debug_print("returning thread id to the thread-creating function");
 
     return (*thread)->tid;
 }
@@ -548,8 +557,8 @@ void myThread_join(myThread_t thread, void **retval) {
      * that this thread was waiting for to join return or what? sounds fine to
      * return */
 
-    dprint("inside join now in thread %d, disabling interrupts...",
-           current_tcb->tid);
+    debug_print("inside join now in thread %d, disabling interrupts...",
+                current_tcb->tid);
 
     disabled_interrupts = 1;
     current_tcb->joiner = thread;
@@ -558,7 +567,7 @@ void myThread_join(myThread_t thread, void **retval) {
     if (thread->is_finished) {
         goto acquire_ret_val_and_free_stuff;
     } else {
-        dprint("thread hasn't finished, going to sleep");
+        debug_print("thread hasn't finished, going to sleep");
         if (setjmp(current_tcb->env) == 0) {
             /* add this thread into the waiting queue and jump to the scheduler
              */
@@ -567,7 +576,7 @@ void myThread_join(myThread_t thread, void **retval) {
             queue_push(waiting, n);
             longjmp(scheduler_tcb->env, 1);
         } else {
-            dprint(
+            debug_print(
                 "thread being joined on is now finished, starting cleanup and "
                 "resuming operation");
             /* coming back after finishing stuff, now thread has a return value
@@ -578,7 +587,7 @@ void myThread_join(myThread_t thread, void **retval) {
     }
 
 acquire_ret_val_and_free_stuff:
-    dprint("cleanup for thread %d started", thread->tid);
+    debug_print("cleanup for thread %d started", thread->tid);
     current_tcb->joiner = NULL;
     if (retval != NULL) *retval = thread->retval;
     delete_thread(thread);
@@ -601,19 +610,23 @@ int myThread_attr_destroy(myThread_attr_t *attr) {
 
 myThread_t myThread_self(void) { return current_tcb; }
 
-mutex_t myThread_mutex_create() {
-    mutex_t mutex;
-    mutex.is_free = 1;
-    mutex.waiting = queue_create();
-    return mutex;
+
+
+/************
+ * Lock API *
+ ************/
+
+
+void myThread_mutex_init(mutex_t *mutex, void *attr) {
+    mutex->is_free = 1;
+    mutex->waiting = queue_create();
 }
 
-/* TODO: check if the contents of each mutex's waiting queue need to be freed up
- * in the end
+/* do contents of each mutex's waiting queue need to be freed up at the end?
  * - ideally no, since otherwise there will be a mutex which is still busy at
  * the end of the program or the program doesn't end, which is a deadlock */
 void myThread_mutex_destroy(mutex_t *mutex) {
-    queue_destroy(mutex->waiting);  // do we need to free stuff in there?
+    queue_destroy(mutex->waiting);
 }
 
 /* note that when we are trying to acquire a lock, we can never be in a blocking
@@ -622,16 +635,16 @@ void myThread_mutex_destroy(mutex_t *mutex) {
  * waiting queue which hasn't acquired its lock yet onto the runnable queue */
 void myThread_mutex_lock(mutex_t *mutex) {
     disabled_interrupts = 1;
-    
-    dprint("trying to lock from thread %d", current_tcb->tid);
+
+    debug_print("trying to lock from thread %d", current_tcb->tid);
     if (!(mutex->is_free)) {
-        dprint("lock isn't free, queue looks like:");
+        debug_print("lock isn't free, queue looks like:");
         /* move current_tcb from runnable to waiting (lock-local and global) */
         node *current_tcb_node = queue_erase(runnable, current_tcb);
         /* make a new copy of a node to add to local queue, to avoid messing
          * with the nxt pointers. note that this will still point to the same
          * tcb */
-        print_queue(runnable);
+        debug_print_queue(runnable);
         node *current_tcb_node_copy = node_create(current_tcb);
         queue_push(waiting, current_tcb_node);
         queue_push(mutex->waiting, current_tcb_node_copy);
@@ -640,39 +653,146 @@ void myThread_mutex_lock(mutex_t *mutex) {
             longjmp(scheduler_tcb->env, 1);
         }
     }
-    dprint("successfully acquired the lock");
+    debug_print("successfully acquired the lock");
     mutex->is_free = 0;
     disabled_interrupts = 0;
 }
 
 void myThread_mutex_unlock(mutex_t *mutex) {
     disabled_interrupts = 1;
-    dprint("unlocking lock from thread %d", current_tcb->tid);
+    debug_print("unlocking lock from thread %d", current_tcb->tid);
     if (mutex->waiting->size > 0) {
         /* move front tcb from waiting (global) to the runnable queue
          * and pop from the lock-local queue */
-        dprint("before freeing the first waiting thread from the mutex queue, it looks like:");
-        print_queue(mutex->waiting);
+        debug_print(
+            "before freeing the first waiting thread from the mutex queue, it "
+            "looks like:");
+        debug_print_queue(mutex->waiting);
 
         node *to_remove_copy =
             queue_erase(mutex->waiting, queue_peek(mutex->waiting)->data);
         node *to_remove = queue_erase(waiting, to_remove_copy->data);
-        
+
         free(to_remove_copy);
-        
+
         queue_push(runnable, to_remove);
-        
-        dprint("after freeing the first waiting thread from the mutex queue, it looks like:");
-        print_queue(mutex->waiting);
-        
-        dprint("after adding the removed stuff to runnable, runnable looks like:");
-        print_queue(runnable);
-        /* is this necessary */
-        // if (mutex->waiting->size == 0) mutex->is_free = 1;
+
+        debug_print(
+            "after freeing the first waiting thread from the mutex queue, it "
+            "looks like:");
+        debug_print_queue(mutex->waiting);
+
+        debug_print(
+            "after adding the removed stuff to runnable, runnable looks like:");
+        debug_print_queue(runnable);
+        /* the following is not necessary - proof: in book */
+        /* if (mutex->waiting->size == 0) mutex->is_free = 1; */
         /* don't need to longjmp to scheduler here, since unlock is not meant to
          * be blocking and we can just return because of this */
     } else {
         mutex->is_free = 1;
+    }
+    disabled_interrupts = 0;
+}
+
+
+/**************************
+ * Condition variable API *
+ **************************/
+
+
+
+void myThread_cond_init(cv_t *cond, void *attr) {
+    cond->waiting = queue_create();
+}
+
+void myThread_cond_destroy(cv_t *cond) { queue_destroy(cond->waiting); }
+
+void myThread_cond_wait(cv_t *cond, mutex_t *mutex) {
+    disabled_interrupts = 1;
+
+    node *current_tcb_node = queue_erase(runnable, current_tcb);
+    /* make a new copy of a node to add to local queue, to avoid messing
+     * with the nxt pointers. note that this will still point to the same
+     * tcb */
+
+    debug_print_queue(runnable);
+
+    node *current_tcb_node_copy = node_create(current_tcb);
+    queue_push(waiting, current_tcb_node);
+    queue_push(cond->waiting, current_tcb_node_copy);
+
+    myThread_mutex_unlock(mutex);
+
+    /* setjmp current tcb to env and longjmp to scheduler */
+    if (setjmp(current_tcb->env) == 0) {
+        longjmp(scheduler_tcb->env, 1);
+    }
+
+    disabled_interrupts = 0;
+    myThread_mutex_lock(mutex);
+}
+
+void myThread_cond_signal(cv_t *cond) {
+    disabled_interrupts = 1;
+    if (cond->waiting->size > 0) {
+        /* move front tcb from waiting (global) to the runnable queue
+         * and pop from the cv-local queue */
+        debug_print(
+            "before freeing the first waiting thread from the cv queue, it "
+            "looks like:");
+        debug_print_queue(cond->waiting);
+
+        node *to_remove_copy =
+            queue_erase(cond->waiting, queue_peek(cond->waiting)->data);
+        node *to_remove = queue_erase(waiting, to_remove_copy->data);
+
+        free(to_remove_copy);
+
+        queue_push(runnable, to_remove);
+
+        debug_print(
+            "after freeing the first waiting thread from the cv queue, it "
+            "looks like:");
+        debug_print_queue(cond->waiting);
+
+        debug_print(
+            "after adding the removed stuff to runnable, runnable looks like:");
+        debug_print_queue(runnable);
+        /* don't need to longjmp to scheduler here, since signal is not meant to
+         * be blocking and we can just return because of this */
+    }
+    disabled_interrupts = 0;
+}
+
+void myThread_cond_broadcast(cv_t *cond) {
+    disabled_interrupts = 1;
+    while (cond->waiting->size > 0) {
+        /* move front tcb from waiting (global) to the runnable queue
+         * and pop from the cv-local queue */
+        debug_print(
+            "before freeing the first waiting thread from the cv queue, it "
+            "looks like:");
+        debug_print_queue(cond->waiting);
+
+        node *to_remove_copy =
+            queue_erase(cond->waiting, queue_peek(cond->waiting)->data);
+        node *to_remove = queue_erase(waiting, to_remove_copy->data);
+
+        free(to_remove_copy);
+
+        queue_push(runnable, to_remove);
+
+        debug_print(
+            "after freeing the first waiting thread from the cv queue, it "
+            "looks like:");
+        debug_print_queue(cond->waiting);
+
+        debug_print(
+            "after adding the removed stuff to runnable, runnable looks like:");
+        debug_print_queue(runnable);
+        /* don't need to longjmp to scheduler here, since broadcast is not meant
+         * to be blocking and we can just return because of this */
     }
     disabled_interrupts = 0;
 }
