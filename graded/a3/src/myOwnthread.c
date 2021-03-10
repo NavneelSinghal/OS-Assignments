@@ -255,6 +255,7 @@ void signal_handler(int sig) {
     /* due to the invariant for scheduler, whenever we get out of the scheduler,
      * interrupts get enabled automatically */
     debug_print("inside signal handler");
+
     if (setjmp(current_tcb->env) == 0) {
         debug_print("jumping to scheduler from inside signal handler");
         longjmp(scheduler_tcb->env, 1);

@@ -1,0 +1,6 @@
+2. implement context switch time measurement of ownthread (and see what to do about pthreads)
+3. implement producer consumer in both pthreads and ownthreads
+4. implement matrix multipliation in both pthreads and ownthreads
+5. look at submission instructions and prepare Makefile
+6. write README
+7. submit

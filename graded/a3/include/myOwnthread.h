@@ -64,6 +64,7 @@ typedef struct cv_t {
 
 /* condition variable functions */
 void myThread_cond_init(cv_t *cond, void *attr);
+void myThread_cond_destroy(cv_t *cond);
 void myThread_cond_wait(cv_t *cond, mutex_t *mutex);
 void myThread_cond_signal(cv_t *cond);
 void myThread_cond_broadcast(cv_t *cond);
