@@ -639,9 +639,6 @@ void myThread_mutex_lock(mutex_t *mutex) {
         if (setjmp(current_tcb->env) == 0) {
             longjmp(scheduler_tcb->env, 1);
         }
-        // if (setjmp(current_tcb->env) == 0) {
-        //     longjmp(scheduler_tcb->env, 1);
-        // }
     }
     dprint("successfully acquired the lock");
     mutex->is_free = 0;
