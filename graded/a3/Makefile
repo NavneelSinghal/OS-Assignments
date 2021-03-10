@@ -1,3 +1,9 @@
+runlockyield: bin/lockyield
+	bin/lockyield
+
+runlock: bin/lock
+	bin/lock
+
 runrecyield: bin/recyield
 	bin/recyield
 
@@ -9,6 +15,12 @@ runmultiple: bin/multiple_threads
 
 runsingle: bin/single_thread
 	bin/single_thread
+
+bin/lockyield: tests/lock_yield.c lib/libmyOwnthread.so
+	gcc -O0 -g -o $@ $^ -L./lib -lmyOwnthread
+
+bin/lock: tests/lock.c lib/libmyOwnthread.so
+	gcc -O0 -g -o $@ $^ -L./lib -lmyOwnthread
 
 bin/recyield: tests/yield_nested.c lib/libmyOwnthread.so
 	gcc -O0 -g -o $@ $^ -L./lib -lmyOwnthread

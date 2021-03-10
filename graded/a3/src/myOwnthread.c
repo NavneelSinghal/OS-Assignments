@@ -8,7 +8,7 @@
 
 #include "../include/queue.h"
 
-#define NODEBUG
+// #define NODEBUG
 
 #ifdef NODEBUG
 
@@ -59,8 +59,8 @@ void print_queue(queue *q) {
 unsigned long ptr_mangle(unsigned long addr) {
     unsigned long ret;
     asm volatile(
-        "xor    %%fs:0x30,%0\n"
-        "rol    $0x11,%0\n"
+        "xor %%fs:0x30, %0\n"
+        "rol $0x11, %0\n"
         : "=g"(ret)
         : "0"(addr));
     return ret;
@@ -75,8 +75,8 @@ unsigned long ptr_mangle(unsigned long addr) {
 unsigned long ptr_mangle(unsigned long addr) {
     unsigned long ret;
     asm volatile(
-        "xor    %%gs:0x18,%0\n"
-        "rol    $0x9,%0\n"
+        "xor %%gs:0x18, %0\n"
+        "rol $0x9, %0\n"
         : "=g"(ret)
         : "0"(addr));
     return ret;
@@ -237,7 +237,12 @@ void final_cleanup() {
     free(custom_handler);
 }
 
+/* TODO: check this */
 void signal_handler(int sig) {
+    /* added line - does this work for handling signal handler inside itself?
+     */
+    if (disabled_interrupts) return;
+
     /* disabling interrupts to ensure that signal handler never calls itself
      * - might be possible if the clock keeps ticking when the os context
      * switches out the main kernel thread */
@@ -394,7 +399,7 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
 
         dprint("adding main_tcb to runnable");
         queue_push(runnable, node_create(main_tcb));
-        
+
         dprint("adding thread_tcb to the runnable queue");
         queue_push(runnable, node_create(*thread));
 
@@ -543,7 +548,8 @@ void myThread_join(myThread_t thread, void **retval) {
      * that this thread was waiting for to join return or what? sounds fine to
      * return */
 
-    dprint("inside join now in thread %d, disabling interrupts...", current_tcb->tid);
+    dprint("inside join now in thread %d, disabling interrupts...",
+           current_tcb->tid);
 
     disabled_interrupts = 1;
     current_tcb->joiner = thread;
@@ -561,7 +567,9 @@ void myThread_join(myThread_t thread, void **retval) {
             queue_push(waiting, n);
             longjmp(scheduler_tcb->env, 1);
         } else {
-            dprint("thread being joined on is now finished, starting cleanup and resuming operation");
+            dprint(
+                "thread being joined on is now finished, starting cleanup and "
+                "resuming operation");
             /* coming back after finishing stuff, now thread has a return value
              * in it free this thread */
             assert(thread->is_finished);
@@ -592,4 +600,83 @@ int myThread_attr_destroy(myThread_attr_t *attr) {
 }
 
 myThread_t myThread_self(void) { return current_tcb; }
+
+mutex_t myThread_mutex_create() {
+    mutex_t mutex;
+    mutex.is_free = 1;
+    mutex.waiting = queue_create();
+    return mutex;
+}
+
+/* TODO: check if the contents of each mutex's waiting queue need to be freed up
+ * in the end
+ * - ideally no, since otherwise there will be a mutex which is still busy at
+ * the end of the program or the program doesn't end, which is a deadlock */
+void myThread_mutex_destroy(mutex_t *mutex) {
+    queue_destroy(mutex->waiting);  // do we need to free stuff in there?
+}
+
+/* note that when we are trying to acquire a lock, we can never be in a blocking
+ * state and the join_caller_id of a thread is set iff join_caller_id is NULL or
+ * is waiting so it is impossible for a thread to try to put a thread from the
+ * waiting queue which hasn't acquired its lock yet onto the runnable queue */
+void myThread_mutex_lock(mutex_t *mutex) {
+    disabled_interrupts = 1;
+    
+    dprint("trying to lock from thread %d", current_tcb->tid);
+    if (!(mutex->is_free)) {
+        dprint("lock isn't free, queue looks like:");
+        /* move current_tcb from runnable to waiting (lock-local and global) */
+        node *current_tcb_node = queue_erase(runnable, current_tcb);
+        /* make a new copy of a node to add to local queue, to avoid messing
+         * with the nxt pointers. note that this will still point to the same
+         * tcb */
+        print_queue(runnable);
+        node *current_tcb_node_copy = node_create(current_tcb);
+        queue_push(waiting, current_tcb_node);
+        queue_push(mutex->waiting, current_tcb_node_copy);
+        /* setjmp current tcb to env and longjmp to scheduler */
+        if (setjmp(current_tcb->env) == 0) {
+            longjmp(scheduler_tcb->env, 1);
+        }
+        // if (setjmp(current_tcb->env) == 0) {
+        //     longjmp(scheduler_tcb->env, 1);
+        // }
+    }
+    dprint("successfully acquired the lock");
+    mutex->is_free = 0;
+    disabled_interrupts = 0;
+}
+
+void myThread_mutex_unlock(mutex_t *mutex) {
+    disabled_interrupts = 1;
+    dprint("unlocking lock from thread %d", current_tcb->tid);
+    if (mutex->waiting->size > 0) {
+        /* move front tcb from waiting (global) to the runnable queue
+         * and pop from the lock-local queue */
+        dprint("before freeing the first waiting thread from the mutex queue, it looks like:");
+        print_queue(mutex->waiting);
+
+        node *to_remove_copy =
+            queue_erase(mutex->waiting, queue_peek(mutex->waiting)->data);
+        node *to_remove = queue_erase(waiting, to_remove_copy->data);
+        
+        free(to_remove_copy);
+        
+        queue_push(runnable, to_remove);
+        
+        dprint("after freeing the first waiting thread from the mutex queue, it looks like:");
+        print_queue(mutex->waiting);
+        
+        dprint("after adding the removed stuff to runnable, runnable looks like:");
+        print_queue(runnable);
+        /* is this necessary */
+        // if (mutex->waiting->size == 0) mutex->is_free = 1;
+        /* don't need to longjmp to scheduler here, since unlock is not meant to
+         * be blocking and we can just return because of this */
+    } else {
+        mutex->is_free = 1;
+    }
+    disabled_interrupts = 0;
+}
 

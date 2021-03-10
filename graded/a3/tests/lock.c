@@ -15,17 +15,22 @@ void dprint(const char* format, ...) {
 
 #define N 10
 #define ITER 5
-#define WAIT_ITER 2000000
+#define WAIT_ITER 20000000
 
-volatile int dummy = 0;
+mutex_t mutex;
+
+int common = 0;
 
 void* a(void* arg) {
     for (int i = 0; i < ITER; ++i) {
-        // might get buffered
+        myThread_mutex_lock(&mutex);
         printf("thread id is %d\n", myThread_self()->tid);
-        for (int i = 0; i < WAIT_ITER; ++i) {
-            dummy += rand();
+        for (int j = 0; j < ITER; ++j) {
+            common += j;
         }
+        printf("common value becomes %d\n", common);
+        myThread_mutex_unlock(&mutex);
+        for (int i = 0; i < WAIT_ITER; ++i);
     }
     myThread_exit(NULL);
 }
@@ -37,6 +42,8 @@ int main() {
     for (int i = 0; i < N; ++i) {
         *(arg + i) = n;
     }
+
+    mutex = myThread_mutex_create();
 
     dprint("MAIN: initializing attributes");
 
@@ -51,16 +58,16 @@ int main() {
     }
 
     for (int i = 0; i < ITER; ++i) {
+        myThread_mutex_lock(&mutex);
         printf("thread id is %d\n", myThread_self()->tid);
-        for (int i = 0; i < WAIT_ITER; ++i) {
-            dummy += rand();
-        }
+        myThread_mutex_unlock(&mutex);
+        for (int i = 0; i < WAIT_ITER; ++i);
     }
 
     for (int i = 0; i < N; ++i) {
         dprint("MAIN: joining thread number %d", thread[i]->tid);
-        dprint("MAIN: joining thread");
         myThread_join(thread[i], NULL);
+        dprint("MAIN: thread joined");
     }
 
     free(arg);

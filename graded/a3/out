@@ -1,0 +1,1373 @@
+MAIN: initializing attributes
+MAIN: creating thread
+inside myThread_create
+myThread_create called for the first time
+runnable and waiting queues created
+size of runnable is 0
+size of waiting is 0
+allocating main_tcb...
+allocating main_tcb completed
+size of runnable is 0
+size of waiting is 0
+allocating scheduler_tcb...
+allocating scheduler_tcb completed
+allocating thread_tcb...
+allocating thread_tcb completed
+adding main_tcb to runnable
+adding thread_tcb to the runnable queue
+size of runnable is 2
+size of waiting is 0
+setting up signal handler
+signal handler set up completed
+longjmp to scheduler
+reached the scheduler
+doing the first jump to main to continue creating the thread
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+2 -> 
+NULL
+
+returned from scheduler to main for the first time
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+MAIN: creating thread
+inside myThread_create
+disabled interrupts and allocating thread_tcb...
+allocating thread_tcb completed
+adding thread_tcb to the runnable queue
+enabling interrupts
+MAIN: thread created
+reached the scheduler
+0 -> 
+2 -> 
+3 -> 
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+size of runnable is: 11
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+2 -> 
+3 -> 
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+NULL
+
+reached the scheduler
+2 -> 
+3 -> 
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+NULL
+
+size of runnable is: 11
+id of the thread picked up from runnable: 2
+got a thread to run
+id of the thread to be run: 2
+longjmp to current_tcb->env
+queue before longjmp
+3 -> 
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+trying to lock from thread 2
+successfully acquired the lock
+reached the scheduler
+3 -> 
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 11
+id of the thread picked up from runnable: 3
+got a thread to run
+id of the thread to be run: 3
+longjmp to current_tcb->env
+queue before longjmp
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+3 -> 
+NULL
+
+trying to lock from thread 3
+lock isn't free, queue looks like:
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 10
+id of the thread picked up from runnable: 4
+got a thread to run
+id of the thread to be run: 4
+longjmp to current_tcb->env
+queue before longjmp
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+4 -> 
+NULL
+
+trying to lock from thread 4
+lock isn't free, queue looks like:
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 9
+id of the thread picked up from runnable: 5
+got a thread to run
+id of the thread to be run: 5
+longjmp to current_tcb->env
+queue before longjmp
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+5 -> 
+NULL
+
+trying to lock from thread 5
+lock isn't free, queue looks like:
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 8
+id of the thread picked up from runnable: 6
+got a thread to run
+id of the thread to be run: 6
+longjmp to current_tcb->env
+queue before longjmp
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+6 -> 
+NULL
+
+trying to lock from thread 6
+lock isn't free, queue looks like:
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 7
+id of the thread picked up from runnable: 7
+got a thread to run
+id of the thread to be run: 7
+longjmp to current_tcb->env
+queue before longjmp
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+7 -> 
+NULL
+
+trying to lock from thread 7
+lock isn't free, queue looks like:
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 6
+id of the thread picked up from runnable: 8
+got a thread to run
+id of the thread to be run: 8
+longjmp to current_tcb->env
+queue before longjmp
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+8 -> 
+NULL
+
+trying to lock from thread 8
+lock isn't free, queue looks like:
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+9 -> 
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 5
+id of the thread picked up from runnable: 9
+got a thread to run
+id of the thread to be run: 9
+longjmp to current_tcb->env
+queue before longjmp
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+9 -> 
+NULL
+
+trying to lock from thread 9
+lock isn't free, queue looks like:
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+10 -> 
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 4
+id of the thread picked up from runnable: 10
+got a thread to run
+id of the thread to be run: 10
+longjmp to current_tcb->env
+queue before longjmp
+11 -> 
+0 -> 
+2 -> 
+10 -> 
+NULL
+
+trying to lock from thread 10
+lock isn't free, queue looks like:
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+11 -> 
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 3
+id of the thread picked up from runnable: 11
+got a thread to run
+id of the thread to be run: 11
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+2 -> 
+11 -> 
+NULL
+
+trying to lock from thread 11
+lock isn't free, queue looks like:
+0 -> 
+2 -> 
+NULL
+
+reached the scheduler
+0 -> 
+2 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+2 -> 
+0 -> 
+NULL
+
+reached the scheduler
+2 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 2
+got a thread to run
+id of the thread to be run: 2
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+2 -> 
+NULL
+
+unlocking lock from thread 2
+before freeing the first waiting thread from the mutex queue, it looks like:
+3 -> 
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+2 -> 
+3 -> 
+NULL
+
+reached the scheduler
+0 -> 
+3 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+3 -> 
+0 -> 
+NULL
+
+reached the scheduler
+3 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 3
+got a thread to run
+id of the thread to be run: 3
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+3 -> 
+NULL
+
+successfully acquired the lock
+reached the scheduler
+0 -> 
+3 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+3 -> 
+0 -> 
+NULL
+
+reached the scheduler
+3 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 3
+got a thread to run
+id of the thread to be run: 3
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+3 -> 
+NULL
+
+unlocking lock from thread 3
+before freeing the first waiting thread from the mutex queue, it looks like:
+4 -> 
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+3 -> 
+4 -> 
+NULL
+
+reached the scheduler
+0 -> 
+4 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+4 -> 
+0 -> 
+NULL
+
+reached the scheduler
+4 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 4
+got a thread to run
+id of the thread to be run: 4
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+4 -> 
+NULL
+
+successfully acquired the lock
+inside signal handler
+jumping to scheduler from inside signal handler
+reached the scheduler
+0 -> 
+4 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+4 -> 
+0 -> 
+NULL
+
+reached the scheduler
+4 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 4
+got a thread to run
+id of the thread to be run: 4
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+4 -> 
+NULL
+
+reached the scheduler
+0 -> 
+4 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+4 -> 
+0 -> 
+NULL
+
+reached the scheduler
+4 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 4
+got a thread to run
+id of the thread to be run: 4
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+4 -> 
+NULL
+
+unlocking lock from thread 4
+before freeing the first waiting thread from the mutex queue, it looks like:
+5 -> 
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+4 -> 
+5 -> 
+NULL
+
+reached the scheduler
+0 -> 
+5 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+5 -> 
+0 -> 
+NULL
+
+reached the scheduler
+5 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 5
+got a thread to run
+id of the thread to be run: 5
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+5 -> 
+NULL
+
+successfully acquired the lock
+reached the scheduler
+0 -> 
+5 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+5 -> 
+0 -> 
+NULL
+
+reached the scheduler
+5 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 5
+got a thread to run
+id of the thread to be run: 5
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+5 -> 
+NULL
+
+unlocking lock from thread 5
+before freeing the first waiting thread from the mutex queue, it looks like:
+6 -> 
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+5 -> 
+6 -> 
+NULL
+
+reached the scheduler
+0 -> 
+6 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+6 -> 
+0 -> 
+NULL
+
+reached the scheduler
+6 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 6
+got a thread to run
+id of the thread to be run: 6
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+6 -> 
+NULL
+
+successfully acquired the lock
+reached the scheduler
+0 -> 
+6 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+6 -> 
+0 -> 
+NULL
+
+reached the scheduler
+6 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 6
+got a thread to run
+id of the thread to be run: 6
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+6 -> 
+NULL
+
+unlocking lock from thread 6
+before freeing the first waiting thread from the mutex queue, it looks like:
+7 -> 
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+6 -> 
+7 -> 
+NULL
+
+reached the scheduler
+0 -> 
+7 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+7 -> 
+0 -> 
+NULL
+
+reached the scheduler
+7 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 7
+got a thread to run
+id of the thread to be run: 7
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+7 -> 
+NULL
+
+successfully acquired the lock
+inside signal handler
+jumping to scheduler from inside signal handler
+reached the scheduler
+0 -> 
+7 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+7 -> 
+0 -> 
+NULL
+
+reached the scheduler
+7 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 7
+got a thread to run
+id of the thread to be run: 7
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+7 -> 
+NULL
+
+reached the scheduler
+0 -> 
+7 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+7 -> 
+0 -> 
+NULL
+
+reached the scheduler
+7 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 7
+got a thread to run
+id of the thread to be run: 7
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+7 -> 
+NULL
+
+unlocking lock from thread 7
+before freeing the first waiting thread from the mutex queue, it looks like:
+8 -> 
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+7 -> 
+8 -> 
+NULL
+
+reached the scheduler
+0 -> 
+8 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+8 -> 
+0 -> 
+NULL
+
+reached the scheduler
+8 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 8
+got a thread to run
+id of the thread to be run: 8
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+8 -> 
+NULL
+
+successfully acquired the lock
+reached the scheduler
+0 -> 
+8 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+8 -> 
+0 -> 
+NULL
+
+reached the scheduler
+8 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 8
+got a thread to run
+id of the thread to be run: 8
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+8 -> 
+NULL
+
+unlocking lock from thread 8
+before freeing the first waiting thread from the mutex queue, it looks like:
+9 -> 
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+10 -> 
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+8 -> 
+9 -> 
+NULL
+
+reached the scheduler
+0 -> 
+9 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+9 -> 
+0 -> 
+NULL
+
+reached the scheduler
+9 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 9
+got a thread to run
+id of the thread to be run: 9
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+9 -> 
+NULL
+
+successfully acquired the lock
+reached the scheduler
+0 -> 
+9 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+9 -> 
+0 -> 
+NULL
+
+reached the scheduler
+9 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 9
+got a thread to run
+id of the thread to be run: 9
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+9 -> 
+NULL
+
+unlocking lock from thread 9
+before freeing the first waiting thread from the mutex queue, it looks like:
+10 -> 
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+11 -> 
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+0 -> 
+9 -> 
+10 -> 
+NULL
+
+reached the scheduler
+0 -> 
+10 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+10 -> 
+0 -> 
+NULL
+
+reached the scheduler
+10 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 10
+got a thread to run
+id of the thread to be run: 10
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+10 -> 
+NULL
+
+successfully acquired the lock
+inside signal handler
+jumping to scheduler from inside signal handler
+reached the scheduler
+0 -> 
+10 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+10 -> 
+0 -> 
+NULL
+
+MAIN: joining thread number 2
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 2 started
+MAIN: thread joined
+MAIN: joining thread number 3
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 3 started
+MAIN: thread joined
+MAIN: joining thread number 4
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 4 started
+MAIN: thread joined
+MAIN: joining thread number 5
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 5 started
+MAIN: thread joined
+MAIN: joining thread number 6
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 6 started
+MAIN: thread joined
+MAIN: joining thread number 7
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 7 started
+MAIN: thread joined
+MAIN: joining thread number 8
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 8 started
+MAIN: thread joined
+MAIN: joining thread number 9
+inside join now in thread 0, disabling interrupts...
+cleanup for thread 9 started
+MAIN: thread joined
+MAIN: joining thread number 10
+inside join now in thread 0, disabling interrupts...
+thread hasn't finished, going to sleep
+reached the scheduler
+10 -> 
+NULL
+
+size of runnable is: 1
+id of the thread picked up from runnable: 10
+got a thread to run
+id of the thread to be run: 10
+longjmp to current_tcb->env
+queue before longjmp
+10 -> 
+NULL
+
+reached the scheduler
+10 -> 
+NULL
+
+size of runnable is: 1
+id of the thread picked up from runnable: 10
+got a thread to run
+id of the thread to be run: 10
+longjmp to current_tcb->env
+queue before longjmp
+10 -> 
+NULL
+
+unlocking lock from thread 10
+before freeing the first waiting thread from the mutex queue, it looks like:
+11 -> 
+NULL
+
+after freeing the first waiting thread from the mutex queue, it looks like:
+NULL
+
+after adding the removed stuff to runnable, runnable looks like:
+10 -> 
+11 -> 
+NULL
+
+reached the scheduler
+11 -> 
+0 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 11
+got a thread to run
+id of the thread to be run: 11
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+11 -> 
+NULL
+
+successfully acquired the lock
+reached the scheduler
+0 -> 
+11 -> 
+NULL
+
+size of runnable is: 2
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+11 -> 
+0 -> 
+NULL
+
+thread being joined on is now finished, starting cleanup and resuming operation
+cleanup for thread 10 started
+MAIN: thread joined
+MAIN: joining thread number 11
+inside join now in thread 0, disabling interrupts...
+thread hasn't finished, going to sleep
+reached the scheduler
+11 -> 
+NULL
+
+size of runnable is: 1
+id of the thread picked up from runnable: 11
+got a thread to run
+id of the thread to be run: 11
+longjmp to current_tcb->env
+queue before longjmp
+11 -> 
+NULL
+
+unlocking lock from thread 11
+reached the scheduler
+0 -> 
+NULL
+
+size of runnable is: 1
+id of the thread picked up from runnable: 0
+got a thread to run
+id of the thread to be run: 0
+longjmp to current_tcb->env
+queue before longjmp
+0 -> 
+NULL
+
+thread being joined on is now finished, starting cleanup and resuming operation
+cleanup for thread 11 started
+MAIN: thread joined
+MAIN: thread joined, exiting...
