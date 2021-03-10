@@ -1,21 +1,22 @@
 #ifndef INCLUDE_MYOWNTHREAD
 #define INCLUDE_MYOWNTHREAD
 
-#include "queue.h"
 #include <setjmp.h>
 
+#include "queue.h"
+
 /* thread definition */
-typedef struct tcb_t {    
+typedef struct tcb_t {
     /* thread identity */
     int tid;
     /* stack size */
     int stack_size;
     /* stack pointer to the first position in the stack */
-    void* stack_start;
+    void *stack_start;
     /* stack pointer to the last position in the stack */
-    void* stack_end;
+    void *stack_end;
     /* function call stuff */
-    void *(*start_routine)(void*);
+    void *(*start_routine)(void *);
     void *arg;
     /* for catching return values from the thread that just joined */
     void *retval;
@@ -34,14 +35,15 @@ typedef struct tcb_t *myThread_t;
 typedef int myThread_attr_t;
 
 /* thread functions */
-int myThread_create(myThread_t* thread, const myThread_attr_t *attr, void* (*start_routine) (void*), void *arg);
+int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
+                    void *(*start_routine)(void *), void *arg);
 void myThread_exit(void *retval);
 int myThread_cancel(myThread_t thread);
 int myThread_attr_init(myThread_attr_t *attr);
 int myThread_attr_destroy(myThread_attr_t *attr);
 myThread_t myThread_self(void);
 int myThread_yield(void);
-void myThread_join(myThread_t thread, void** retval);
+void myThread_join(myThread_t thread, void **retval);
 
 /* lock definition */
 typedef struct mutex_t {
@@ -61,6 +63,7 @@ typedef struct cv_t {
 } cv_t;
 
 /* condition variable functions */
+void myThread_cond_init(cv_t *cond, void *attr);
 void myThread_cond_wait(cv_t *cond, mutex_t *mutex);
 void myThread_cond_signal(cv_t *cond);
 void myThread_cond_broadcast(cv_t *cond);
