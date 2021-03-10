@@ -429,6 +429,9 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
         timer.it_interval = timer.it_value;
         setitimer(ITIMER_VIRTUAL, &timer, NULL);
 
+        /* note that SIGVTALRM is used instead of SIGALRM because
+         * it seems more natural for the timer to get ticks only
+         * when the process is working, and not otherwise */
         sigaction(SIGVTALRM, custom_handler, NULL);
 
         /* disable interrupts to maintain scheduler invariant */
