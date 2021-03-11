@@ -15,10 +15,13 @@ int num_threads;
 
 int **a, **b, **c;
 
+double ans[MAX_THREADS];
+
 pthread_t* threads;
 myThread_t* mythreads;
 
 struct timespec start_time_pthreads, end_time_pthreads;
+struct timespec start_time_pthreads_process, end_time_pthreads_process;
 struct timespec start_time_mythreads, end_time_mythreads;
 struct timespec start_time_normal, end_time_normal;
 // double pthread_time[MAX_THREADS];
@@ -32,6 +35,8 @@ double time_duration(struct timespec* a, struct timespec* b) {
 }
 
 void* compute_chunk_pthread(void* arg) {
+    struct timespec start_time_pthreads_thread, end_time_pthreads_thread;
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_time_pthreads_thread);
     int thread_id = *((int*)arg);
     int left = thread_id * N / num_threads;
     int right = (thread_id + 1) * N / num_threads;
@@ -43,6 +48,8 @@ void* compute_chunk_pthread(void* arg) {
             }
         }
     }
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_time_pthreads_thread);
+    ans[thread_id] = time_duration(&start_time_pthreads_thread, &end_time_pthreads_thread);
     pthread_exit(NULL);
 }
 
@@ -91,6 +98,7 @@ int main(int argc, char* argv[]) {
         args[i] = i;
     }
 
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time_pthreads_process);
     for (int i = 0; i < num_threads; ++i) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
@@ -123,14 +131,21 @@ int main(int argc, char* argv[]) {
     b = NULL;
 
     clock_gettime(CLOCK_MONOTONIC, &end_time_pthreads);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_time_pthreads_process);
 
-    printf("%lf ", time_duration(&start_time_pthreads, &end_time_pthreads));
+    printf("%lf ", time_duration(&start_time_pthreads_process, &end_time_pthreads_process));
+
+    double pthreads_time_total = 0;
+    for (int i = 0; i < num_threads; ++i) {
+        pthreads_time_total -= ans[i];
+    }
+    pthreads_time_total += time_duration(&start_time_pthreads_process, &end_time_pthreads_process);
 
     /* using myThreads */
 
     // allocate
 
-    clock_gettime(CLOCK_MONOTONIC, &start_time_mythreads);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time_mythreads);
 
     a = (int**)malloc(N * sizeof(int*));
     for (int i = 0; i < N; ++i) {
@@ -183,7 +198,7 @@ int main(int argc, char* argv[]) {
     a = NULL;
     b = NULL;
 
-    clock_gettime(CLOCK_MONOTONIC, &end_time_mythreads);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_time_mythreads);
 
     printf("%lf ", time_duration(&start_time_mythreads, &end_time_mythreads));
 
@@ -225,7 +240,7 @@ int main(int argc, char* argv[]) {
 
     clock_gettime(CLOCK_MONOTONIC, &end_time_normal);
 
-    printf("%lf\n", time_duration(&start_time_normal, &end_time_normal));
+    printf("%lf %lf %lf\n", time_duration(&start_time_normal, &end_time_normal), get_time_taken(), pthreads_time_total);
 
     // }
 

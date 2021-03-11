@@ -6,6 +6,7 @@
 node* node_create(void* data) {
     node* n = (node*)malloc(sizeof(node));
     if (n == NULL) {
+        // return NULL;
         fprintf(stderr, "node malloc failed\n");
         exit(1);
     }
@@ -18,6 +19,7 @@ queue* queue_create() {
     queue* ret;
     ret = (queue*)malloc(sizeof(queue));
     if (ret == NULL) {
+        // return NULL;
         fprintf(stderr, "queue malloc failed\n");
         exit(1);
     }
@@ -29,6 +31,7 @@ queue* queue_create() {
 
 void queue_push(queue* q, node* n) {
     if (q == NULL) {
+        // return;
         fprintf(stderr, "can't add to null queue");
         exit(1);
     }
@@ -46,10 +49,12 @@ void queue_push(queue* q, node* n) {
 
 node* queue_erase(queue* q, void* data) {
     if (q == NULL) {
+        // return NULL;
         fprintf(stderr, "tried popping from null queue");
         exit(1);
     }
     if (q->size == 0) {
+        // return NULL;
         fprintf(stderr, "tried popping from empty queue");
         exit(1);
     }

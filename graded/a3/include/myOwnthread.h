@@ -45,6 +45,8 @@ myThread_t myThread_self(void);
 int myThread_yield(void);
 void myThread_join(myThread_t thread, void **retval);
 
+double get_time_taken();
+
 /* lock definition */
 typedef struct mutex_t {
     int is_free;

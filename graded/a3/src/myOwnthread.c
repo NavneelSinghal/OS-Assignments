@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <time.h>
 #include <sys/time.h>
 
 #include "../include/queue.h"
@@ -102,6 +103,9 @@ static int first_jump = 0;
 static int disabled_interrupts = 0;
 static struct sigaction *custom_handler;
 
+static double total_time = 0;
+static struct timespec start_time, end_time;
+
 static struct itimerval timer;
 
 /*
@@ -144,14 +148,26 @@ static struct itimerval timer;
  * Thread-related functionality *
  ********************************/
 
+/* find time taken between two instants */
+double time_duration(struct timespec* a, struct timespec* b) {
+    return (b->tv_sec - a->tv_sec) * 1000000.0 +
+           (b->tv_nsec - a->tv_nsec) / 1000.0;
+}
+
+double get_time_taken() {
+    return total_time;
+}
+
 /*
  * invariant for scheduler
  *      - long jump to scheduler happens only when interrupts are disabled
  *      - whenever we return from scheduler, interrupts are enabled
  */
+
 void scheduler() {
     debug_print("reached the scheduler");
     int got_thread_to_run = 0;
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_time);
     if (!first_jump) {
         first_jump = 1;
         debug_print(
@@ -161,6 +177,8 @@ void scheduler() {
         debug_print("queue before longjmp");
         debug_print_queue(runnable);
         disabled_interrupts = 0;
+        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_time);
+        total_time += time_duration(&start_time, &end_time);
         longjmp(current_tcb->env, 1);
     } else {
         while (runnable->size > 0) {
@@ -194,6 +212,8 @@ void scheduler() {
         debug_print("longjmp to current_tcb->env");
         debug_print("queue before longjmp");
         debug_print_queue(runnable);
+        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_time);
+        total_time += time_duration(&start_time, &end_time);
         longjmp(current_tcb->env, 1);
     }
 }
@@ -230,7 +250,7 @@ void final_cleanup() {
     }
     free(waiting);
 
-    assert(runnable->size == 1);
+    // assert(runnable->size == 1);
     while (runnable->size > 0) {
         node *n = queue_erase(runnable, queue_peek(runnable)->data);
         free(n->data);
@@ -278,6 +298,9 @@ int myThread_create(myThread_t *thread, const myThread_attr_t *attr,
     debug_print("inside myThread_create");
 
     if (create_called == 0) {
+
+        total_time = 0;
+
         /* here signal handler is not in place as of now */
         create_called = 1;
 
@@ -599,7 +622,10 @@ acquire_ret_val_and_free_stuff:
     return;
 }
 
-int myThread_cancel(myThread_t thread);
+int myThread_cancel(myThread_t thread) {
+    thread->is_finished = 1;
+    return 0;
+}
 
 int myThread_attr_init(myThread_attr_t *attr) {
     if (attr == NULL) return -1;
