@@ -3,65 +3,65 @@ All times mentioned are in microseconds
 Naive scheduling statistics:
 
 Thread #0:
-	Wall time:	2090.283000
-	CPU time:	2042.925000
+	Wall time:	2.991000
+	CPU time:	35.841000
 Thread #1:
-	Wall time:	2403.504000
-	CPU time:	2405.001000
+	Wall time:	2.960000
+	CPU time:	4.125000
 Thread #2:
-	Wall time:	2590.124000
-	CPU time:	2589.792000
+	Wall time:	6.599000
+	CPU time:	7.778000
 Thread #3:
-	Wall time:	2812.499000
-	CPU time:	2812.108000
+	Wall time:	3.924000
+	CPU time:	5.226000
 Thread #4:
-	Wall time:	2955.897000
-	CPU time:	2956.145000
+	Wall time:	3.001000
+	CPU time:	4.292000
 Thread #5:
-	Wall time:	2811.139000
-	CPU time:	2811.355000
+	Wall time:	2.978000
+	CPU time:	4.181000
 Thread #6:
-	Wall time:	2986.498000
-	CPU time:	2986.365000
+	Wall time:	4.219000
+	CPU time:	5.444000
 Thread #7:
-	Wall time:	3163.998000
-	CPU time:	3163.803000
+	Wall time:	2.420000
+	CPU time:	3.223000
 Thread #8:
-	Wall time:	3276.990000
-	CPU time:	3276.836000
+	Wall time:	2.406000
+	CPU time:	3.200000
 Thread #9:
-	Wall time:	3364.482000
-	CPU time:	3364.260000
+	Wall time:	4.089000
+	CPU time:	5.377000
 
 Load-balanced scheduling statistics:
 
 Thread #0:
-	Wall time:	3030.275000
-	CPU time:	3012.574000
+	Wall time:	6.222000
+	CPU time:	6.495000
 Thread #1:
-	Wall time:	2994.394000
-	CPU time:	2994.310000
+	Wall time:	3.382000
+	CPU time:	4.662000
 Thread #2:
-	Wall time:	2963.336000
-	CPU time:	2963.359000
+	Wall time:	2.575000
+	CPU time:	2.812000
 Thread #3:
-	Wall time:	2961.809000
-	CPU time:	2961.865000
+	Wall time:	3.407000
+	CPU time:	4.712000
 Thread #4:
-	Wall time:	2969.548000
-	CPU time:	2886.289000
+	Wall time:	2.375000
+	CPU time:	2.549000
 Thread #5:
-	Wall time:	2949.252000
-	CPU time:	2949.165000
+	Wall time:	2.582000
+	CPU time:	3.321000
 Thread #6:
-	Wall time:	2934.069000
-	CPU time:	2933.934000
+	Wall time:	2.364000
+	CPU time:	2.648000
 Thread #7:
-	Wall time:	2917.432000
-	CPU time:	2917.173000
+	Wall time:	4.069000
+	CPU time:	4.764000
 Thread #8:
-	Wall time:	2904.744000
-	CPU time:	2904.537000
+	Wall time:	2.340000
+	CPU time:	2.520000
 Thread #9:
-	Wall time:	2883.127000
-	CPU time:	2879.798000
+	Wall time:	3.462000
+	CPU time:	4.651000
