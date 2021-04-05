@@ -493,6 +493,9 @@ init_thread (struct thread *t, const char *name, int priority)
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
 #ifdef USERPROG
+  /* initialize process stuff */
+  t->proc = NULL;
+  list_init (&(t->children));
   /* adjusts the name - for make check */
   char *savep;
   strtok_r (t->name, " ", &savep);

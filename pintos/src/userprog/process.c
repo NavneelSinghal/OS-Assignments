@@ -12,6 +12,7 @@
 #include "threads/vaddr.h"
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
+#include "userprog/syscall.h"
 #include "userprog/tss.h"
 #include <debug.h>
 #include <inttypes.h>
@@ -24,6 +25,9 @@
 #include "vm/sup_page.h"
 #endif
 
+//#define PRINT(...) printf("PALLOC AT " __VA_ARGS__)
+#define PRINT(...) 0
+
 #define MAX_ARGS (32)
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -35,8 +39,10 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name)
 {
-  char *fn_copy;
-  tid_t tid;
+  /* file_name and fn_copy are no longer the filename but the command line */
+  char *fn_copy = NULL, *executable_name = NULL, *tmp = NULL;
+  tid_t tid = -1;
+  struct proc_info *proc = NULL;
 
   if (strlen (file_name) + 1 > PGSIZE)
     return TID_ERROR;
@@ -49,14 +55,44 @@ process_execute (const char *file_name)
 
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  proc = palloc_get_page (0);
+  if (proc == NULL)
+    {
+      PRINT ("2 ");
+      palloc_free_page (fn_copy);
+      return TID_ERROR;
+    }
+
+  /* Initialize process info */
+  proc->tid = -1;
+  proc->cmd_line = fn_copy;
+  proc->parent = thread_current ();
+  proc->ret = -1;
+  proc->is_waiting = false;
+  proc->has_exited = false;
+  proc->is_orphaned = false;
+  sema_init (&(proc->sem_exec), 0);
+  sema_init (&(proc->sem_wait), 0);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, proc);
 
   // free memory on error
   if (tid == TID_ERROR)
     {
+      PRINT ("4 ");
       palloc_free_page (fn_copy);
+      PRINT ("6 ");
+      palloc_free_page (proc);
+      return TID_ERROR;
     }
+
+  /* wait till start_process() has initialized stuff */
+  sema_down (&(proc->sem_exec));
+
+  tid = proc->tid;
+  if (tid != -1)
+    list_push_back (&(thread_current ()->children), &(proc->elem));
 
   return tid;
 }
@@ -66,10 +102,13 @@ process_execute (const char *file_name)
 static void
 start_process (void *load_p)
 {
-  char *file_name = load_p;
+  struct proc_info *proc = (struct proc_info *)load_p;
+  char *file_name = (char *)proc->cmd_line;
   struct intr_frame if_;
-  bool success;
+  bool success = false;
   char *vargs[MAX_ARGS];
+  for (int i = 0; i < MAX_ARGS; ++i)
+    vargs[i] = NULL;
   int nargs = 0;
   int argssize = strlen (file_name) + 1;
 
@@ -78,6 +117,7 @@ start_process (void *load_p)
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
        token = strtok_r (NULL, " ", &save_ptr))
     {
+      PRINT ("token: %s\n", token);
       vargs[nargs++] = token;
       ASSERT (nargs < MAX_ARGS);
     }
@@ -89,48 +129,66 @@ start_process (void *load_p)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (vargs[0], &if_.eip, &if_.esp);
 
-  /* If load failed, quit. */
+  /* If load succeeded, update if_. */
+  if (success)
+    {
+      /* build the stack from the given arguments */
+      char *esp = if_.esp;
+      esp -= argssize;
+      memcpy (esp, file_name, argssize);
+      // memcpy (esp, load_p, argssize);
+      /* let's adjust the vargs pointers to point to this area */
+      size_t offs = (char *)vargs[0] - esp;
+      for (int i = 0; i < nargs; i++)
+        vargs[i] = vargs[i] - offs;
+      /* align to word boundary */
+      esp -= (size_t)esp % 4;
+      /* get null in */
+      esp -= sizeof (char *);
+      /* push arg references right to left */
+      esp -= sizeof (char *) * nargs;
+      memcpy (esp, vargs, sizeof (char *) * nargs);
+      /* push vargs */
+      char **temp = (char **)esp;
+      esp -= sizeof (char **);
+      *(char ***)esp = temp;
+      /* push nargs */
+      esp -= sizeof (int);
+      *(int *)esp = nargs;
+      /* return address */
+      esp -= sizeof (void *);
+      *(void **)esp = NULL;
+      //  hex_dump(esp, esp, (char*)if_.esp - esp, true);
+      /* no need for file_name anymore */
+      palloc_free_page (file_name);
+      if_.esp = esp;
+    }
+  else
+    {
+      /* no need for file_name anymore */
+      palloc_free_page (file_name);
+    }
+
+  /* Ensure that the created thread can exit gracefully by giving error tid */
+  if (success)
+    proc->tid = thread_current ()->tid;
+  else
+    proc->tid = -1;
+  thread_current ()->proc = proc;
+
+  /* Now safely continue with process_execute() */
+  sema_up (&(proc->sem_exec));
+
+  /* Exit the created process gracefully */
   if (!success)
-    thread_exit ();
-
-  /* build the stack from the given arguments */
-  char *esp = if_.esp;
-  esp -= argssize;
-  memcpy (esp, load_p, argssize);
-  /* let's adjust the vargs pointers to point to this area */
-  size_t offs = (char *)vargs[0] - esp;
-  for (int i = 0; i < nargs; i++)
-    vargs[i] = vargs[i] - offs;
-  /* align to word boundary */
-  esp -= (size_t)esp % 4;
-  /* get null in */
-  esp -= sizeof (char *);
-  /* push arg references right to left */
-  esp -= sizeof (char *) * nargs;
-  memcpy (esp, vargs, sizeof (char *) * nargs);
-  /* push vargs */
-  char **temp = (char **)esp;
-  esp -= sizeof (char **);
-  *(char ***)esp = temp;
-  /* push nargs */
-  esp -= sizeof (int);
-  *(int *)esp = nargs;
-  /* return address */
-  esp -= sizeof (void *);
-  *(void **)esp = NULL;
-
-  /* no need for file_name anymore */
-  palloc_free_page (file_name);
-
-  //  hex_dump(esp, esp, (char*)if_.esp - esp, true);
-
-  if_.esp = esp;
+    sys_exit1 (-1);
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+
   asm volatile("movl %0, %%esp; jmp intr_exit" : : "g"(&if_) : "memory");
   NOT_REACHED ();
 }
@@ -147,8 +205,35 @@ start_process (void *load_p)
 int
 process_wait (tid_t child_tid)
 {
-  while (1)
-    ;
+  // while (1)
+  //   ;
+  struct thread *cur = thread_current ();
+  struct proc_info *child = NULL, *candidate = NULL;
+  struct list_elem *elem = NULL;
+  if (!list_empty (&(cur->children)))
+    {
+      for (elem = list_front (&(cur->children));
+           elem != list_end (&(cur->children)); elem = list_next (elem))
+        {
+          candidate = list_entry (elem, struct proc_info, elem);
+          if (candidate->tid == child_tid)
+            {
+              child = candidate;
+              break;
+            }
+        }
+    }
+  /* child not found, or attempt to wait more than once */
+  if (child == NULL || child->is_waiting)
+    return -1;
+  child->is_waiting = true;
+  if (!child->has_exited)
+    sema_down (&(child->sem_wait));
+  int ret = child->ret;
+  list_remove (elem);
+  PRINT ("10 ");
+  palloc_free_page (child);
+  return ret;
 }
 
 /* Free the current process's resources. */
@@ -157,12 +242,45 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  struct list_elem *elem;
+  struct proc_info *proc;
 
 #ifdef VM
   /* close also the exec file assoiated with this */
   if (cur->execfile)
     file_close (cur->execfile);
 #endif
+
+  // start clearing up custom fields
+  for (int i = 0; i < 256; ++i)
+    if (cur->fileptr[i] != NULL)
+      file_close (cur->fileptr[i]);
+
+  while (!list_empty (&(cur->children)))
+    {
+      elem = list_pop_back (&(cur->children));
+      proc = list_entry (elem, struct proc_info, elem);
+      if (!(proc->has_exited))
+        {
+          proc->parent = NULL;
+          proc->is_orphaned = true;
+        }
+      else
+        {
+          PRINT ("11 ");
+          palloc_free_page (proc);
+        }
+    }
+
+  cur->proc->has_exited = true;
+  if (cur->proc->is_orphaned)
+    {
+      sema_up (&(cur->proc->sem_wait));
+      PRINT ("12 ");
+      palloc_free_page (&(cur->proc));
+    }
+  else
+    sema_up (&(cur->proc->sem_wait));
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -556,6 +674,7 @@ setup_stack (void **esp)
       if (success)
         {
           *esp = PHYS_BASE; //  - 12; // if no args are implemented
+          // *esp = PHYS_BASE - 12; // if no args are implemented
 #ifdef VM
           /* also store this in the suppl_page table */
           struct sup_page *spg = new_zero_sup_page (upage);

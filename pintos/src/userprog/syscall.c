@@ -69,6 +69,24 @@ struct filesize_args
   int fd;
 };
 
+struct exec_args
+{
+  int id;
+  const char *cmd_line;
+};
+
+struct exit_args
+{
+  int id;
+  int status;
+};
+
+struct wait_args
+{
+  int id;
+  tid_t child;
+};
+
 static bool sys_create (struct create_args *args);
 static bool sys_remove (struct remove_args *args);
 static int sys_open (struct open_args *args);
@@ -78,6 +96,10 @@ static int sys_write (struct write_args *args);
 static void sys_seek (struct seek_args *args);
 static int sys_filesize (struct filesize_args *args);
 static void sys_halt (void);
+static tid_t sys_exec (struct exec_args *args);
+void sys_exit (struct exit_args *args);
+static int sys_wait (struct wait_args *args);
+
 static void exit_thread_cleanly (void);
 
 static void syscall_handler (struct intr_frame *);
@@ -179,65 +201,89 @@ syscall_handler (struct intr_frame *f)
   struct write_args *wr_args;
   struct seek_args *sk_args;
   struct filesize_args *fs_args;
+  struct exec_args *xc_args;
+  struct exit_args *xt_args;
+  struct wait_args *wt_args;
+
   switch (*((uint32_t *)(f->esp)))
     {
     case SYS_CREATE:
       cr_args = (struct create_args *)(f->esp);
-      if (!validate_user_addr_range (cr_args->file, 0, f->esp, false))
-        {
-          exit_thread_cleanly ();
-        }
+      if (!validate_user_addr_range (cr_args->file, 0, f->esp, false)
+          || !validate_user_addr_range (f->esp, 12, f->esp, true))
+        exit_thread_cleanly ();
       f->eax = sys_create (cr_args);
       break;
-    case SYS_REMOVE:;
+    case SYS_REMOVE:
       rm_args = (struct remove_args *)(f->esp);
-      if (!validate_user_addr_range (rm_args->file, 0, f->esp, false))
-        {
-          exit_thread_cleanly ();
-        }
+      if (!validate_user_addr_range (rm_args->file, 0, f->esp, false)
+          || !validate_user_addr_range (f->esp, 8, f->esp, true))
+        exit_thread_cleanly ();
       f->eax = sys_remove (rm_args);
       break;
-    case SYS_OPEN:;
+    case SYS_OPEN:
       op_args = (struct open_args *)(f->esp);
-      if (!validate_user_addr_range (op_args->file, 0, f->esp, false))
-        {
-          exit_thread_cleanly ();
-        }
+      if (!validate_user_addr_range (op_args->file, 0, f->esp, false)
+          || !validate_user_addr_range (f->esp, 8, f->esp, true))
+        exit_thread_cleanly ();
       f->eax = sys_open (op_args);
       break;
-    case SYS_CLOSE:;
+    case SYS_CLOSE:
+      if (!validate_user_addr_range (f->esp, 8, f->esp, true))
+        exit_thread_cleanly ();
       cl_args = (struct close_args *)(f->esp);
       sys_close (cl_args);
       break;
     case SYS_READ:
       rd_args = (struct read_args *)(f->esp);
       if (!validate_user_addr_range (rd_args->buffer, rd_args->length, f->esp,
-                                     true))
-        {
-          exit_thread_cleanly ();
-        }
+                                     true)
+          || !validate_user_addr_range (f->esp, 16, f->esp, true))
+        exit_thread_cleanly ();
       f->eax = sys_read (rd_args);
       break;
-    case SYS_WRITE:;
+    case SYS_WRITE:
       wr_args = (struct write_args *)(f->esp);
       if (!validate_user_addr_range (wr_args->buffer, wr_args->length, f->esp,
-                                     true))
-        {
-          exit_thread_cleanly ();
-        }
+                                     true)
+          || !validate_user_addr_range (f->esp, 16, f->esp, true))
+        exit_thread_cleanly ();
       f->eax = sys_write (wr_args);
       break;
-    case SYS_SEEK:;
+    case SYS_SEEK:
       sk_args = (struct seek_args *)(f->esp);
-      /* validation probably not needed */
+      if (!validate_user_addr_range (f->esp, 12, f->esp, true))
+          exit_thread_cleanly();
       sys_seek (sk_args);
       break;
-    case SYS_FILESIZE:;
+    case SYS_FILESIZE:
       fs_args = (struct filesize_args *)(f->esp);
+      if (!validate_user_addr_range (f->esp, 8, f->esp, true))
+          exit_thread_cleanly();
       f->eax = sys_filesize (fs_args);
       break;
     case SYS_HALT:
+      if (!validate_user_addr_range (f->esp, 4, f->esp, true))
+          exit_thread_cleanly();
       sys_halt ();
+      break;
+    case SYS_EXEC:
+      xc_args = (struct exec_args *)(f->esp);
+      if (!validate_user_addr_range (xc_args->cmd_line, 0, f->esp, false) || (!validate_user_addr_range (f->esp, 8, f->esp, true)))
+        exit_thread_cleanly ();
+      f->eax = sys_exec (xc_args);
+      break;
+    case SYS_EXIT:
+      if (!validate_user_addr_range (f->esp, 8, f->esp, true))
+          exit_thread_cleanly();
+      xt_args = (struct exit_args *)(f->esp);
+      sys_exit (xt_args);
+      break;
+    case SYS_WAIT:
+      if (!validate_user_addr_range (f->esp, 8, f->esp, true))
+          exit_thread_cleanly();
+      wt_args = (struct wait_args *)(f->esp);
+      f->eax = sys_wait (wt_args);
       break;
     default:
       printf ("This system call is not implemented.\n");
@@ -396,9 +442,46 @@ sys_halt (void)
   NOT_REACHED ();
 }
 
+/* syscall to run the executable */
+static tid_t
+sys_exec (struct exec_args *args)
+{
+  tid_t child = -1;
+  FS_ATOMIC (child = process_execute (args->cmd_line););
+  return child;
+}
+
+/* syscall to exit the process */
+void
+sys_exit (struct exit_args *args)
+{
+  printf ("%s: exit(%d)\n", thread_current ()->name, args->status);
+  struct proc_info *proc = thread_current ()->proc;
+  if (proc != NULL)
+    proc->ret = args->status;
+  thread_exit ();
+}
+
+/* syscall to wait for child to exit */
+static int
+sys_wait (struct wait_args *args)
+{
+  return process_wait (args->child);
+}
+
+void
+sys_exit1 (int s)
+{
+  struct exit_args e;
+  e.status = s;
+  sys_exit (&e);
+}
+
 static void
 exit_thread_cleanly (void)
 {
-  thread_exit ();
+  sys_exit1 (-1);
+  // thread_exit ();
   NOT_REACHED ();
 }
+

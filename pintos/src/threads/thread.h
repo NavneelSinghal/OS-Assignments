@@ -28,6 +28,26 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+struct thread;
+
+struct proc_info
+  {
+    tid_t tid;                          /* tid of current thread. */
+    const char *cmd_line;               /* Command text. */
+    struct thread *parent;              /* Parent thread. */
+    
+    int ret;                            /* Exit code. */
+
+    struct semaphore sem_exec;         /* Semaphore for exec(). */
+    struct semaphore sem_wait;         /* Semaphore for wait(). */
+
+    bool has_exited;                    /* true iff it has exited. */
+    bool is_orphaned;                   /* true iff parent has exited. */
+    bool is_waiting;                    /* true iff parent is waiting. */
+
+    struct list_elem elem;              /* List element for children list. */
+  };
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -104,8 +124,10 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-    /* Owned by userprog/syscall.c */
-    struct file *fileptr[256];                 /* Mapping file descriptor -> files. */
+    struct file *fileptr[256];          /* Mapping file descriptor -> files. */
+    struct proc_info *proc;             /* Process info. */
+
+    struct list children;               /* List of children of this thread. */
 #endif
 
 #ifdef VM
