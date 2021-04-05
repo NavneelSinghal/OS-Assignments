@@ -1,0 +1,6 @@
+echo "getting into build"
+cd build
+echo "running..."
+pintos -v -k -T 60 --qemu  --filesys-size=2 -p tests/userprog/exec-bound-2 -a exec-bound-2 -- -q  -f run exec-bound-2 < /dev/null
+echo "coming back"
+cd ..
