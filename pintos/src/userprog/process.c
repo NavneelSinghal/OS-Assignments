@@ -57,7 +57,7 @@ process_execute (const char *file_name)
 
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  proc = palloc_get_page (0);
+  proc = malloc (sizeof (struct proc_info));
   if (proc == NULL)
     {
       PRINT ("2 ");
@@ -85,7 +85,7 @@ process_execute (const char *file_name)
       PRINT ("4 ");
       palloc_free_page (fn_copy);
       PRINT ("6 ");
-      palloc_free_page (proc);
+      free (proc);
       return TID_ERROR;
     }
 
@@ -234,7 +234,7 @@ process_wait (tid_t child_tid)
   int ret = child->ret;
   list_remove (e);
   PRINT ("10 ");
-  palloc_free_page (child);
+  free (child);
   return ret;
 }
 
@@ -273,7 +273,7 @@ process_exit (void)
       else
         {
           PRINT ("11 ");
-          palloc_free_page (proc);
+          free (proc);
         }
     }
 
@@ -282,7 +282,7 @@ process_exit (void)
     {
       sema_up (&(cur->proc->sem_wait));
       PRINT ("12 ");
-      palloc_free_page (&(cur->proc));
+      free (&(cur->proc));
     }
   else
     sema_up (&(cur->proc->sem_wait));
