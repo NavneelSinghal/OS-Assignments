@@ -1,0 +1,68 @@
+The assignment involved implementation of user level threads.
+
+Some notes about the implementation:
+
+There are two special threads - main and the scheduler (the scheduler, however, is never in any queue).
+There are two global queues - runnable and waiting. Runnable consists of the threads that are ready to run,
+and waiting consists of threads that are blocked due to join calls or locks.
+Invariants for the functions can be found in the comments alongside the implementation.
+
+A brief description of each function in the API is as follows:
+
+1.  ptr_mangle is an architecture-dependent function that mangles the pointers just like GCC does, so that we can set jmpbuf addresses manually for stack pointers, base pointers and program counters
+to locations in the heap (where the stack space for a thread is allocated) and the function pointers.
+
+2.  scheduler is the function that decides which thread is to be run next, picking elements from the runnable queue.
+
+3.  run_thread is a wrapper function for running a thread, and it is the function to which the program counters for each thread point to, initially.
+
+4.  delete_thread is a utility function for clearing up a thread and its resources after it has exited.
+
+5.  final_cleanup is the exit handler for the program, and it cleans up all memory that has been allocated by the thread system
+
+6.  signal_handler is the signal handler for the timer signals, and this is the point where a thread jumps to the scheduler.
+
+7.  myThread_create is the function as specified in the API, and it creates a thread. The first time a thread is created, it also sets up the thread system by setting up the main and scheduler tcbs,
+data structures, as well as the signal handler.
+
+8. myThread_exit is the function as specified in the API, and it is the function for gracefully exiting from a thread. While exiting from a thread, it wakes up the thread that called join on it (if
+any), and jumps to the scheduler.
+
+9. myThread_yield is the function for voluntarily giving up control, and it jumps to the scheduler.
+
+10. myThread_join is the function for asking a thread to join. It checks if that thread has been finished or not, and if it is not, it cleans up the thread's resources, and else it merely goes to
+sleep.
+
+11. myThread_attr_init is the function for initializing the attribute (which here is the stack size).
+
+12. myThread_attr_destroy is the function for freeing up attributes.
+
+13. myThread_self is the function for returning the current running thread's tcb.
+
+14. myThread_mutex_init is the function for initializing a mutex.
+
+15. myThread_mutex_destroy is the function for destroying a mutex.
+
+16. myThread_mutex_lock is the function for acquiring the mutex. While trying to acquire the lock, it checks if it is free or not, and if it is not free, it adds the current thread to the lock's
+waiting queue as well as the global waiting queue, and otherwise, it merely acquires the lock.
+
+17. myThread_mutex_unlock is the function for releasing the mutex. When releasing a mutex, it checks if there is anything in waiting or not -- if there is not, then it just changes the state of the
+lock to free, and if there is, it takes the first thread in that queue and puts it on the runnable queue, while removing it from the waiting queue too.
+
+18. myThread_cond_init is the function for initializing a condition variable.
+
+19. myThread_cond_destroy is the function for destroying a condition variable.
+
+20. myThread_cond_wait is the function for waiting for the condition variable. Here we remove the current tcb from the runnable queue and add it to the waiting queue (both global and
+condition-variable-local), and release the lock. Then we longjmp to the scheduler, and in the end, acquire the lock.
+
+21. myThread_cond_signal is the function for signaling the condition variable, and the implementation is analogous to myThread_mutex_unlock, albeit a stateless version.
+
+22. myThread_cond_broadcast is the function for broadcasting the condition variable, and the implementation is analogous to myThread_cond_signal, except that we put all threads in the condition
+variable's waiting queue in the runnable queue.
+
+
+
+Testing - the test files in the tests/ directory are self-explanatory.
+
+Application testing - the test files in target_tests/ are self explanatory. The context switch time was measured using 2 methods - one using the time taken by the matrix multiplication, and the other using a program that has threads that merely keep yielding to one another for a fixed number of iterations.
