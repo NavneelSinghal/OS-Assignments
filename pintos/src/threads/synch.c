@@ -327,10 +327,13 @@ lock_release (struct lock *lock)
     }
   else if (!list_empty (&(cur_thread->held_locks)))
     {
-      cur_thread->priority
-          = list_entry (list_begin (&(cur_thread->held_locks)), struct lock,
-                        element)
-                ->subtree_max_priority;
+      int p = list_entry (list_begin (&(cur_thread->held_locks)), struct lock,
+                          element)
+                  ->subtree_max_priority;
+      if (cur_thread->base_priority < p)
+        cur_thread->priority = p;
+      else
+        cur_thread->priority = cur_thread->base_priority;
       thread_yield ();
     }
 }
