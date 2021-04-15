@@ -318,15 +318,13 @@ lock_release (struct lock *lock)
   struct thread *cur_thread = thread_current ();
   list_remove (&(lock->element));
   /* now if there are no held locks, just use base priority */
-  /* can probably make it stricter and get fine-grained behaviour
-   * of reverting when there are no donations to this thread */
   list_sort (&(cur_thread->held_locks), order_lock_by_subtree_max_priority,
              NULL);
   if (list_empty (&(cur_thread->held_locks)))
     {
       donate_priority (cur_thread, cur_thread->base_priority);
     }
-  else
+  else if (!list_empty (&(cur_thread->held_locks)))
     {
       donate_priority (cur_thread,
                        list_entry (list_begin (&(cur_thread->held_locks)),

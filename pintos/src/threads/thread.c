@@ -674,7 +674,8 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 /*
- * Donate priority
+ * Donate priority - can't do this directly in synch.c because
+ * we need to access ready_list to donate as well as yield
  */
 void
 donate_priority (struct thread *t, int new_priority)
