@@ -111,6 +111,7 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
+    int base_priority;                  /* Base priority. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
@@ -120,6 +121,12 @@ struct thread
     /* Owned by devices/timer.c */
     struct list_elem elem_timer;
     int64_t wakeup_tick;
+
+    /* Priority scheduling */
+    /* Note that the waiting relation induces a graph structure, so we need
+     * a representation for parent-child relationship in this graph */
+    struct lock *wait_lock;             /* Lock on which we are waiting */
+    struct list held_locks;             /* List of locks we are holding */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -177,5 +184,7 @@ int thread_get_load_avg (void);
 
 /* look through all threads and find the one with tid, else null */
 struct thread* id_to_thread(tid_t tid);
+
+void donate_priority (struct thread*, int);
 
 #endif /* threads/thread.h */

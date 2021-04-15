@@ -74,6 +74,19 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+static bool order_of_priority (const struct list_elem *,
+                               const struct list_elem *, void *aux);
+
+static bool
+order_of_priority (const struct list_elem *a, const struct list_elem *b,
+                   void *aux)
+{
+  return list_entry (a, struct thread, elem)->priority
+         > list_entry (b, struct thread, elem)->priority;
+}
+
+/* TODO: yield after creating/unblocking */
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -204,6 +217,10 @@ thread_create (const char *name, int priority, thread_func *function,
   /* Add to run queue. */
   thread_unblock (t);
 
+  /* yield anyway, since the scheduler will give this thread more priority if
+   * it deserves it */
+  thread_yield ();
+
   return tid;
 }
 
@@ -240,8 +257,15 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, order_of_priority, NULL);
   t->status = THREAD_READY;
+  /* preserve the invariant by preempting if needed */
+  struct thread *cur = thread_current ();
+  if (cur != idle_thread && cur->priority < t->priority)
+    {
+      thread_yield ();
+    }
   intr_set_level (old_level);
 }
 
@@ -294,6 +318,8 @@ thread_exit (void)
   sup_page_table_destroy ();
 #endif
 
+  /* If someone doesn't release locks before exiting a thread, they probably
+     know what they're doing */
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
@@ -317,7 +343,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread)
-    list_push_back (&ready_list, &cur->elem);
+    // list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, order_of_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -361,7 +388,22 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  thread_current ()->priority = new_priority;
+  struct thread *cur = thread_current ();
+  /* if there is no donation, then do normal stuff */
+  if (cur->priority == cur->base_priority)
+    {
+      cur->priority = new_priority;
+    }
+  /* change base priority of the current thread */
+  cur->base_priority = new_priority;
+  /* now we can either yield or not */
+  /* yield iff the priority reduces to less than the maximum priority */
+  if (!list_empty (&ready_list)
+      && list_entry (list_begin (&ready_list), struct thread, elem)->priority
+             > new_priority)
+    {
+      thread_yield ();
+    }
 }
 
 /* Returns the current thread's priority. */
@@ -488,7 +530,10 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *)t + PGSIZE;
   t->priority = priority;
+  t->base_priority = priority; /* priority scheduling */
   t->magic = THREAD_MAGIC;
+  t->wait_lock = NULL;
+  list_init (&t->held_locks);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -627,3 +672,21 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+/*
+ * Donate priority
+ */
+void
+donate_priority (struct thread *t, int new_priority)
+{
+  t->priority = new_priority;
+  /* yield only if we donate to current thread and the current thread drops
+   * down in priority */
+  if (t == thread_current () && !list_empty (&ready_list)
+      && list_entry (list_begin (&ready_list), struct thread, elem)->priority
+             > new_priority)
+    {
+      thread_yield ();
+    }
+}
+
