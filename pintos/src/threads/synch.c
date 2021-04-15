@@ -58,7 +58,6 @@ struct semaphore_elem
   struct semaphore semaphore; /* This semaphore. */
 };
 
-
 static bool
 order_semaphores_by_max_thread_priority (const struct list_elem *l1,
                                          const struct list_elem *l2, void *aux)
@@ -159,10 +158,10 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   sema->value++; // important to increment before unblocking a waiter thread
+  list_sort (&sema->waiters, order_of_priority, NULL);
   if (!list_empty (&sema->waiters))
     {
       /* choose the highest priority thread */
-      list_sort (&sema->waiters, order_of_priority, NULL);
       thread_unblock (
           list_entry (list_pop_front (&sema->waiters), struct thread, elem));
     }
@@ -255,7 +254,7 @@ lock_acquire (struct lock *lock)
 
   while (par_thread != NULL && par_thread->priority < cur_thread->priority)
     {
-      donate_priority (par_thread, cur_thread->priority);
+      par_thread->priority = cur_thread->priority;
       if (cur_edge->subtree_max_priority < cur_thread->priority)
         {
           cur_edge->subtree_max_priority = cur_thread->priority;
@@ -310,26 +309,29 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  list_sort(&lock->semaphore.waiters, order_of_priority, 0);
+  list_sort (&lock->semaphore.waiters, order_of_priority, 0);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 
   struct thread *cur_thread = thread_current ();
   list_remove (&(lock->element));
-  /* now if there are no held locks, just use base priority */
+  /* now if there are no held locks, just use base priority, else use the max
+   * priority of the remaining locks' subtrees */
   list_sort (&(cur_thread->held_locks), order_lock_by_subtree_max_priority,
              NULL);
   if (list_empty (&(cur_thread->held_locks)))
     {
-      donate_priority (cur_thread, cur_thread->base_priority);
+      cur_thread->priority = cur_thread->base_priority;
+      thread_yield ();
     }
   else if (!list_empty (&(cur_thread->held_locks)))
     {
-      donate_priority (cur_thread,
-                       list_entry (list_begin (&(cur_thread->held_locks)),
-                                   struct lock, element)
-                           ->subtree_max_priority);
+      cur_thread->priority
+          = list_entry (list_begin (&(cur_thread->held_locks)), struct lock,
+                        element)
+                ->subtree_max_priority;
+      thread_yield ();
     }
 }
 

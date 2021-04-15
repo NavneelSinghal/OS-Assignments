@@ -185,6 +185,4 @@ int thread_get_load_avg (void);
 /* look through all threads and find the one with tid, else null */
 struct thread* id_to_thread(tid_t tid);
 
-void donate_priority (struct thread*, int);
-
 #endif /* threads/thread.h */

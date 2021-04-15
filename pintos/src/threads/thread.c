@@ -672,22 +672,3 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
-
-/*
- * Donate priority - can't do this directly in synch.c because
- * we need to access ready_list to donate as well as yield
- */
-void
-donate_priority (struct thread *t, int new_priority)
-{
-  t->priority = new_priority;
-  /* yield only if we donate to current thread and the current thread drops
-   * down in priority */
-  if (t == thread_current () && !list_empty (&ready_list)
-      && list_entry (list_begin (&ready_list), struct thread, elem)->priority
-             > new_priority)
-    {
-      thread_yield ();
-    }
-}
-
