@@ -1,0 +1,20 @@
+Thread 0 has deposited a container into the queue, total insertions/deletions: 1
+Thread 0 has deposited a container into the queue, total insertions/deletions: 2
+Thread 3 has picked up a container from the queue, total insertions/deletions: 3
+Thread 3 has picked up a container from the queue, total insertions/deletions: 4
+Thread 0 has deposited a container into the queue, total insertions/deletions: 5
+Thread 0 has deposited a container into the queue, total insertions/deletions: 6
+Thread 3 has picked up a container from the queue, total insertions/deletions: 7
+Thread 3 has picked up a container from the queue, total insertions/deletions: 8
+Thread 2 has deposited a container into the queue, total insertions/deletions: 9
+Thread 2 has deposited a container into the queue, total insertions/deletions: 10
+Thread 5 has picked up a container from the queue, total insertions/deletions: 11
+Thread 5 has picked up a container from the queue, total insertions/deletions: 12
+Thread 1 has deposited a container into the queue, total insertions/deletions: 13
+Thread 1 has deposited a container into the queue, total insertions/deletions: 14
+Thread 4 has picked up a container from the queue, total insertions/deletions: 15
+Thread 4 has picked up a container from the queue, total insertions/deletions: 16
+Thread 0 has deposited a container into the queue, total insertions/deletions: 17
+Thread 0 has deposited a container into the queue, total insertions/deletions: 18
+Thread 3 has picked up a container from the queue, total insertions/deletions: 19
+Thread 3 has picked up a container from the queue, total insertions/deletions: 20

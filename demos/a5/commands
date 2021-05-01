@@ -1,0 +1,5 @@
+source setup.sh
+then make in examples
+then make in filesys
+then make in thread
+then make check in thread/build
